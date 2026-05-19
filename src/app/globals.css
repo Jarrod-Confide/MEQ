@@ -2,26 +2,31 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+html,
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif;
 }
 
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
+/* Dark-tone the OSM basemap to match the mockup palette */
+.leaflet-tile {
+  filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9);
+}
+.leaflet-container {
+  background: #0b0f17 !important;
+}
+.leaflet-popup-content-wrapper {
+  background: #1a2238 !important;
+  color: #fff !important;
+  border-radius: 8px !important;
+}
+.leaflet-popup-tip {
+  background: #1a2238 !important;
+}
+.leaflet-control-attribution {
+  background: rgba(11, 15, 23, 0.75) !important;
+  color: #6a7da0 !important;
+}
+.leaflet-control-attribution a {
+  color: #8ab4ff !important;
 }

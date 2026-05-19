@@ -1,36 +1,32 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# MEQ — Member Engagement and Quality
 
-## Getting Started
+Confide's cross-app member engagement + quality dashboard. Phase 1 ships a global member bubble map sourced from EventFlow's `contacts.closest_major_city`.
 
-First, run the development server:
+## Stack
+
+- Next.js 14 (App Router) + React 18 + TypeScript + Tailwind 3
+- Postgres (`postgres` lib) — reads EventFlow's Supabase
+- NextAuth 5 + Google OAuth, `@confide.group`-only
+- Leaflet (dynamically imported client-side) for the map
+
+## Local dev
 
 ```bash
+cp .env.local.example .env.local
+# Fill in DATABASE_URL (EventFlow's), AUTH_SECRET (openssl rand -base64 32),
+# GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Routes
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- `/` — global member bubble map
+- `/admin/unmatched` — cities present in DB but missing from `src/lib/cities.ts`
+- `/sign-in` — Google OAuth gate
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Roadmap
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Phase 1 (now)**: city heat map from EventFlow contacts.
+- **Phase 2**: stand up MEQ's own Supabase, identity-resolution table linking Slack/Circle/HubSpot/EventFlow IDs, Slackle message volume → bubble color = engagement score.
+- **Phase 3**: EventFlow attendance signals, composite scoring with recency decay, historical snapshots.

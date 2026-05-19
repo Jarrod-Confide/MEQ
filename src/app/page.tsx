@@ -1,101 +1,103 @@
-import Image from "next/image";
+import { fetchMemberMap } from "@/lib/members";
+import { MemberBubbleMap } from "@/components/MemberBubbleMap";
+import { CityList } from "@/components/CityList";
 
-export default function Home() {
+export const revalidate = 300; // refresh every 5 min
+
+export default async function MemberMapPage() {
+  const data = await fetchMemberMap();
+  const usMembers = data.points
+    .filter((p) => p.country === "US")
+    .reduce((s, p) => s + p.members, 0);
+  const usShare = data.totalMembers
+    ? Math.round((usMembers / data.totalMembers) * 100)
+    : 0;
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+    <div className="flex h-screen flex-col">
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[#1f2a3d] bg-[#111726] px-6 py-4">
+        <div>
+          <div className="text-[12px] uppercase tracking-[0.05em] text-[#9bb0d4]">
+            MEQ · Member Engagement and Quality
+          </div>
+          <h1 className="m-0 text-xl font-semibold">Global Member Map</h1>
         </div>
+        <nav className="flex gap-1">
+          <a
+            href="/"
+            className="rounded-md border border-[#2d3d5c] bg-[#1a2238] px-3 py-1.5 text-[13px] text-white"
+          >
+            Map
+          </a>
+          <a
+            href="/admin/unmatched"
+            className="rounded-md px-3 py-1.5 text-[13px] text-[#9bb0d4] hover:bg-[#1a2238] hover:text-white"
+          >
+            Unmatched
+          </a>
+        </nav>
+        <div className="flex flex-wrap gap-6 text-[13px]">
+          <span>
+            <b className="mr-1 text-base text-[#8ab4ff]">
+              {data.totalMembers.toLocaleString()}
+            </b>
+            members
+          </span>
+          <span>
+            <b className="mr-1 text-base text-[#8ab4ff]">{data.totalCities}</b>
+            cities
+          </span>
+          <span>
+            <b className="mr-1 text-base text-[#8ab4ff]">
+              {data.totalCountries}
+            </b>
+            countries
+          </span>
+          <span>
+            <b className="mr-1 text-base text-[#8ab4ff]">{usShare}%</b>
+            US
+          </span>
+        </div>
+      </header>
+      <main className="grid flex-1 grid-cols-[1fr_320px] overflow-hidden">
+        <MemberBubbleMap points={data.points} />
+        <aside className="overflow-y-auto border-l border-[#1f2a3d] bg-[#111726] p-5">
+          <h2 className="m-0 mb-1 text-[13px] uppercase tracking-[0.05em] text-[#9bb0d4]">
+            Top Cities
+          </h2>
+          <div className="mb-4 text-[12px] text-[#6a7da0]">
+            Active members by closest major city
+          </div>
+          <div className="mb-5 rounded-lg border border-[#1f2a3d] bg-[#0b0f17] p-3">
+            <div className="flex items-center gap-3 py-1">
+              <span className="inline-block h-2 w-2 rounded-full bg-[#60a5fa]" />
+              <span className="text-[12px] text-[#9bb0d4]">1–10</span>
+              <span className="inline-block h-3 w-3 rounded-full bg-[#22c55e]" />
+              <span className="text-[12px] text-[#9bb0d4]">10–40</span>
+              <span className="inline-block h-4 w-4 rounded-full bg-[#facc15]" />
+              <span className="text-[12px] text-[#9bb0d4]">40–100</span>
+              <span className="inline-block h-5 w-5 rounded-full bg-[#ef4444]" />
+              <span className="text-[12px] text-[#9bb0d4]">100+</span>
+            </div>
+          </div>
+          <CityList points={data.points} />
+          {data.unmatched.length > 0 && (
+            <div className="mt-5 rounded-md border border-dashed border-[#2d3d5c] bg-[#0b0f17] p-3 text-[11px] leading-relaxed text-[#6a7da0]">
+              <b className="text-[#fb923c]">
+                {data.unmatched.reduce((s, u) => s + u.members, 0)} members
+              </b>{" "}
+              from {data.unmatched.length} unmatched{" "}
+              {data.unmatched.length === 1 ? "city" : "cities"} —{" "}
+              <a
+                href="/admin/unmatched"
+                className="text-[#8ab4ff] underline-offset-2 hover:underline"
+              >
+                review
+              </a>
+            </div>
+          )}
+        </aside>
       </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
     </div>
   );
 }
