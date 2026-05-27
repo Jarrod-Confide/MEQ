@@ -1,4 +1,4 @@
-import { eq, sql } from "drizzle-orm";
+import { eq, sql, lt, or, isNull } from "drizzle-orm";
 import { meqDb, schema } from "../db/meq";
 import { eventflowSql, slackleSql } from "../db";
 import type { NewMember } from "../db/schema";
@@ -8,6 +8,7 @@ export type SyncStats = {
   upserted: number;
   slackMatched: number;
   circleMatched: number;
+  purged: number;
 };
 
 function parseEmails(
@@ -64,7 +65,8 @@ export async function syncMembers(): Promise<SyncStats> {
                lower(personal_email) AS personal_email, lower(work_email) AS work_email,
                additional_emails, first_name, last_name, company, job_title,
                membership_type, is_member, closest_major_city
-        FROM contacts`,
+        FROM contacts
+        WHERE is_member = true`,
       slackleSql<
         { email: string | null; slack_user_id: string | null; circle_member_id: string | null }[]
       >`SELECT lower(email) AS email, slack_user_id, circle_member_id
@@ -144,11 +146,19 @@ export async function syncMembers(): Promise<SyncStats> {
         });
     }
 
+    // Purge rows not touched this run — contacts that lost membership or
+    // were removed upstream. Runs only after all upserts succeed.
+    const purged = await meqDb
+      .delete(schema.members)
+      .where(or(lt(schema.members.lastSyncedAt, now), isNull(schema.members.lastSyncedAt)))
+      .returning({ id: schema.members.id });
+
     const stats: SyncStats = {
       contactsSeen: contacts.length,
       upserted: rows.length,
       slackMatched,
       circleMatched,
+      purged: purged.length,
     };
 
     await meqDb
