@@ -1,0 +1,154 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import Link from "next/link";
+import type { MemberScore, Dimension } from "@/lib/engagement";
+import { TierBadge, DimBar, TIER_COLOR } from "./engagement-ui";
+
+type SortKey = "total" | Dimension | "name";
+
+const DIM_COLS: { key: Dimension; label: string }[] = [
+  { key: "presence", label: "Pres" },
+  { key: "contribution", label: "Contrib" },
+  { key: "reciprocity", label: "Recip" },
+  { key: "reach", label: "Reach" },
+  { key: "depth", label: "Depth" },
+];
+
+export function EngagementTable({ members }: { members: MemberScore[] }) {
+  const [sort, setSort] = useState<SortKey>("total");
+  const [asc, setAsc] = useState(false);
+  const [q, setQ] = useState("");
+
+  const rows = useMemo(() => {
+    const filtered = q.trim()
+      ? members.filter((m) => m.name.toLowerCase().includes(q.toLowerCase()))
+      : members;
+    const sorted = [...filtered].sort((a, b) => {
+      let av: number | string;
+      let bv: number | string;
+      if (sort === "name") {
+        av = a.name.toLowerCase();
+        bv = b.name.toLowerCase();
+      } else if (sort === "total") {
+        av = a.total;
+        bv = b.total;
+      } else {
+        av = a.dimensions[sort];
+        bv = b.dimensions[sort];
+      }
+      if (av < bv) return asc ? -1 : 1;
+      if (av > bv) return asc ? 1 : -1;
+      return 0;
+    });
+    return sorted;
+  }, [members, sort, asc, q]);
+
+  const onSort = (key: SortKey) => {
+    if (sort === key) setAsc(!asc);
+    else {
+      setSort(key);
+      setAsc(key === "name");
+    }
+  };
+
+  const arrow = (key: SortKey) => (sort === key ? (asc ? " ↑" : " ↓") : "");
+
+  return (
+    <div>
+      <input
+        value={q}
+        onChange={(e) => setQ(e.target.value)}
+        placeholder="Search member…"
+        className="mb-3 w-64 rounded-md border border-[#1f2a3d] bg-[#0b0f17] px-3 py-1.5 text-[13px] text-white placeholder:text-[#6a7da0] focus:border-[#8ab4ff] focus:outline-none"
+      />
+      <div className="overflow-x-auto rounded-lg border border-[#1f2a3d]">
+        <table className="w-full border-collapse text-[13px]">
+          <thead>
+            <tr className="bg-[#111726] text-left text-[11px] uppercase tracking-wide text-[#9bb0d4]">
+              <th className="px-3 py-2.5 font-medium">#</th>
+              <th
+                className="cursor-pointer px-3 py-2.5 font-medium hover:text-white"
+                onClick={() => onSort("name")}
+              >
+                Member{arrow("name")}
+              </th>
+              <th
+                className="cursor-pointer px-3 py-2.5 font-medium hover:text-white"
+                onClick={() => onSort("total")}
+              >
+                Score{arrow("total")}
+              </th>
+              <th className="px-3 py-2.5 font-medium">Tier</th>
+              {DIM_COLS.map((d) => (
+                <th
+                  key={d.key}
+                  className="cursor-pointer px-3 py-2.5 font-medium hover:text-white"
+                  onClick={() => onSort(d.key)}
+                  style={{ minWidth: 78 }}
+                >
+                  {d.label}
+                  {arrow(d.key)}
+                </th>
+              ))}
+              <th className="px-3 py-2.5 font-medium" title="posts / replies / reactions given / attended">
+                Activity
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((m, i) => (
+              <tr
+                key={m.key}
+                className="border-t border-[#161e2e] hover:bg-[#111726]"
+              >
+                <td className="px-3 py-2 tabular-nums text-[#6a7da0]">{i + 1}</td>
+                <td className="px-3 py-2">
+                  <Link
+                    href={`/engagement/${encodeURIComponent(m.key)}`}
+                    className="text-[#cfdaee] hover:text-[#8ab4ff] hover:underline"
+                  >
+                    {m.name}
+                  </Link>
+                  {!m.matched && (
+                    <span
+                      className="ml-2 text-[10px] text-[#6a7da0]"
+                      title="Active in Slack/Circle but not matched to an EventFlow contact"
+                    >
+                      slack-only
+                    </span>
+                  )}
+                </td>
+                <td className="px-3 py-2">
+                  <span className="font-semibold tabular-nums text-white">
+                    {m.total.toFixed(1)}
+                  </span>
+                </td>
+                <td className="px-3 py-2">
+                  <TierBadge tier={m.tier} />
+                </td>
+                {DIM_COLS.map((d) => (
+                  <td key={d.key} className="px-3 py-2">
+                    <div className="flex items-center gap-1.5">
+                      <DimBar value={m.dimensions[d.key]} color={TIER_COLOR[m.tier]} />
+                      <span className="w-7 shrink-0 text-right tabular-nums text-[11px] text-[#9bb0d4]">
+                        {Math.round(m.dimensions[d.key])}
+                      </span>
+                    </div>
+                  </td>
+                ))}
+                <td className="px-3 py-2 tabular-nums text-[11px] text-[#9bb0d4]">
+                  {m.signals.posts}p · {m.signals.replies}r · {m.signals.reactionsGiven}rx ·{" "}
+                  {m.signals.eventsAttended}🎟
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="mt-2 text-[11px] text-[#6a7da0]">
+        {rows.length} members · p = posts, r = replies, rx = reactions given, 🎟 = events attended
+      </div>
+    </div>
+  );
+}
