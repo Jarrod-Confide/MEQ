@@ -36,6 +36,12 @@ export default async function MemberMapPage() {
             Engagement
           </a>
           <a
+            href="/quality"
+            className="rounded-md px-3 py-1.5 text-[13px] text-[#9bb0d4] hover:bg-[#1a2238] hover:text-white"
+          >
+            Quality
+          </a>
+          <a
             href="/admin/unmatched"
             className="rounded-md px-3 py-1.5 text-[13px] text-[#9bb0d4] hover:bg-[#1a2238] hover:text-white"
           >
