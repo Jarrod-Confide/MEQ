@@ -72,5 +72,42 @@ export const memberSyncRuns = pgTable("member_sync_runs", {
   error: text("error"),
 });
 
+/**
+ * Member quality — employer/role attributes that define how "high quality"
+ * a CISO member is. Sourced from HubSpot contact properties. 1:1 with
+ * members. v1 "high quality" = works for a Fortune 2000 company; seniority
+ * + team size are captured now so the definition can expand.
+ */
+export const memberQuality = pgTable("member_quality", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  memberId: uuid("member_id")
+    .references(() => members.id, { onDelete: "cascade" })
+    .notNull()
+    .unique(),
+
+  // Denormalized for a self-contained quality view.
+  name: text("name"),
+  company: text("company"),
+
+  // ── HubSpot contact properties (raw) ──
+  companySize: text("company_size"), // numemployees: "1-5" … "1000+"
+  employmentStatus: text("employment_status"), // Employed | vCISO | In Transition
+  reportingTo: text("reporting_to"), // CEO | CIO | Board | …
+  seniority: text("seniority"), // hs_seniority: C-Level | VP | …
+  teamSize: text("team_size"), // Just Me (Solo) | 1-5 | … | 100+
+
+  // ── Derived ──
+  employmentType: text("employment_type"), // employed | self_employed | in_transition | unknown
+  isFortune2000: boolean("is_fortune_2000").notNull().default(false),
+  isHighQuality: boolean("is_high_quality").notNull().default(false),
+  tags: jsonb("tags").$type<string[]>().default([]),
+
+  syncedAt: timestamp("synced_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
 export type Member = typeof members.$inferSelect;
 export type NewMember = typeof members.$inferInsert;
+export type MemberQuality = typeof memberQuality.$inferSelect;
+export type NewMemberQuality = typeof memberQuality.$inferInsert;

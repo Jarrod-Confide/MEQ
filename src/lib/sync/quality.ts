@@ -1,0 +1,163 @@
+import { sql, isNotNull } from "drizzle-orm";
+import { meqDb, schema } from "../db/meq";
+import { batchReadContacts } from "../hubspot";
+import { isFortune2000 } from "../fortune";
+import type { NewMemberQuality } from "../db/schema";
+
+export type QualityStats = {
+  membersWithHubspot: number;
+  hubspotFetched: number;
+  upserted: number;
+  selfEmployed: number;
+  fortune2000: number;
+  highQuality: number;
+};
+
+const HS_PROPS = [
+  "current_employment_status",
+  "reporting_to_",
+  "hs_seniority",
+  "team_size",
+  "numemployees",
+  "company",
+  "firstname",
+  "lastname",
+];
+
+function classifyEmployment(status: string | null): string {
+  switch (status) {
+    case "Employed":
+      return "employed";
+    case "vCISO":
+      return "self_employed";
+    case "In Transition":
+      return "in_transition";
+    default:
+      return "unknown";
+  }
+}
+
+function buildTags(p: {
+  employmentType: string;
+  reportingTo: string | null;
+  seniority: string | null;
+  teamSize: string | null;
+  isFortune2000: boolean;
+}): string[] {
+  const tags: string[] = [];
+  if (p.employmentType === "self_employed") tags.push("self_employed");
+  if (p.employmentType === "in_transition") tags.push("in_transition");
+  if (p.isFortune2000) tags.push("fortune_2000");
+  if (p.reportingTo === "CEO" || p.reportingTo === "Board") tags.push("reports_to_ceo");
+  if (p.seniority === "C-Level") tags.push("c_level");
+  if (p.teamSize === "51-100" || p.teamSize === "100+") tags.push("large_team");
+  return tags;
+}
+
+/**
+ * Enrich MEQ members with HubSpot company-quality attributes. Pulls
+ * employment/seniority/team-size/company-size for every member with a
+ * hubspot_contact_id, derives the quality flags, and upserts member_quality.
+ *
+ * v1 "high quality" = works for a Fortune 2000 company. Seniority + team
+ * size are captured for the definition to expand later.
+ */
+export async function enrichQuality(): Promise<QualityStats> {
+  const rows = await meqDb
+    .select({
+      id: schema.members.id,
+      hubspotContactId: schema.members.hubspotContactId,
+      name: schema.members.displayName,
+      company: schema.members.company,
+    })
+    .from(schema.members)
+    .where(isNotNull(schema.members.hubspotContactId));
+
+  const idToMember = new Map(rows.map((r) => [r.hubspotContactId as string, r]));
+  const contacts = await batchReadContacts(
+    rows.map((r) => r.hubspotContactId as string),
+    HS_PROPS
+  );
+
+  const now = new Date();
+  // Keyed by memberId so merged HubSpot contacts (which resolve to the same
+  // canonical id) don't produce duplicate rows in one upsert batch.
+  const byMember = new Map<string, NewMemberQuality>();
+
+  for (const c of contacts) {
+    const member = idToMember.get(c.id);
+    if (!member) continue;
+    const p = c.properties;
+
+    const company = p.company || member.company || null;
+    const employmentType = classifyEmployment(p.current_employment_status);
+    const isF2000 = isFortune2000(company);
+    const isHigh = isF2000; // v1 definition
+
+    const name =
+      [p.firstname, p.lastname].filter(Boolean).join(" ").trim() || member.name || null;
+    const tags = buildTags({
+      employmentType,
+      reportingTo: p.reporting_to_,
+      seniority: p.hs_seniority,
+      teamSize: p.team_size,
+      isFortune2000: isF2000,
+    });
+
+    byMember.set(member.id, {
+      memberId: member.id,
+      name,
+      company,
+      companySize: p.numemployees || null,
+      employmentStatus: p.current_employment_status || null,
+      reportingTo: p.reporting_to_ || null,
+      seniority: p.hs_seniority || null,
+      teamSize: p.team_size || null,
+      employmentType,
+      isFortune2000: isF2000,
+      isHighQuality: isHigh,
+      tags,
+      syncedAt: now,
+      updatedAt: now,
+    });
+  }
+
+  const values = [...byMember.values()];
+  const selfEmployed = values.filter((v) => v.employmentType === "self_employed").length;
+  const fortune2000 = values.filter((v) => v.isFortune2000).length;
+  const highQuality = values.filter((v) => v.isHighQuality).length;
+
+  const CHUNK = 500;
+  for (let i = 0; i < values.length; i += CHUNK) {
+    await meqDb
+      .insert(schema.memberQuality)
+      .values(values.slice(i, i + CHUNK))
+      .onConflictDoUpdate({
+        target: schema.memberQuality.memberId,
+        set: {
+          name: sql`excluded.name`,
+          company: sql`excluded.company`,
+          companySize: sql`excluded.company_size`,
+          employmentStatus: sql`excluded.employment_status`,
+          reportingTo: sql`excluded.reporting_to`,
+          seniority: sql`excluded.seniority`,
+          teamSize: sql`excluded.team_size`,
+          employmentType: sql`excluded.employment_type`,
+          isFortune2000: sql`excluded.is_fortune_2000`,
+          isHighQuality: sql`excluded.is_high_quality`,
+          tags: sql`excluded.tags`,
+          syncedAt: sql`excluded.synced_at`,
+          updatedAt: sql`excluded.updated_at`,
+        },
+      });
+  }
+
+  return {
+    membersWithHubspot: rows.length,
+    hubspotFetched: contacts.length,
+    upserted: values.length,
+    selfEmployed,
+    fortune2000,
+    highQuality,
+  };
+}
