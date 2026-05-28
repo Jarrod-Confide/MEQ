@@ -78,19 +78,8 @@ export default async function MemberMapPage() {
             Top Cities
           </h2>
           <div className="mb-4 text-[12px] text-[#6a7da0]">
-            Active members by closest major city
-          </div>
-          <div className="mb-5 rounded-lg border border-[#1f2a3d] bg-[#0b0f17] p-3">
-            <div className="flex items-center gap-3 py-1">
-              <span className="inline-block h-2 w-2 rounded-full bg-[#60a5fa]" />
-              <span className="text-[12px] text-[#9bb0d4]">1–10</span>
-              <span className="inline-block h-3 w-3 rounded-full bg-[#22c55e]" />
-              <span className="text-[12px] text-[#9bb0d4]">10–40</span>
-              <span className="inline-block h-4 w-4 rounded-full bg-[#facc15]" />
-              <span className="text-[12px] text-[#9bb0d4]">40–100</span>
-              <span className="inline-block h-5 w-5 rounded-full bg-[#ef4444]" />
-              <span className="text-[12px] text-[#9bb0d4]">100+</span>
-            </div>
+            Members by closest major city · switch the map view to color by
+            quality, engagement, or priority outreach.
           </div>
           <CityList points={data.points} />
           {data.unmatched.length > 0 && (

@@ -1,8 +1,15 @@
-import { sql } from "./db";
+import { eq, isNotNull } from "drizzle-orm";
+import { meqDb, schema } from "./db/meq";
 import { CITY_GEO, type GeoCity } from "./cities";
+import { getEngagement } from "./engagement-cache";
 
 export type CityPoint = GeoCity & {
   members: number;
+  avgQuality: number | null;
+  avgEngagement: number | null;
+  highQuality: number; // Platinum + Gold count
+  champions: number; // Champion + Active engagement count
+  priority: number; // high quality but NOT champion (low engagement)
 };
 
 export type UnmatchedCity = {
@@ -20,35 +27,100 @@ export type MemberMapData = {
 };
 
 /**
- * Pulls active-member counts grouped by closest_major_city from EventFlow's
- * contacts table, then joins against the static geo lookup. Cities that
- * don't match the lookup are returned in `unmatched` for the admin queue.
- *
- * Uses a 5-minute revalidation window — engagement geography is a slow
- * signal and the contact ingest only refreshes daily anyway.
+ * Aggregates the canonical MEQ member roster by city and joins quality
+ * (from member_quality) + engagement (from the cached leaderboard) so the
+ * map can color bubbles by Density / Quality / Engagement / Priority.
  */
 export async function fetchMemberMap(): Promise<MemberMapData> {
-  const rows = await sql<{ city: string; members: number }[]>`
-    SELECT closest_major_city AS city, COUNT(*)::int AS members
-    FROM contacts
-    WHERE closest_major_city IS NOT NULL
-      AND closest_major_city <> ''
-      AND closest_major_city <> 'N/A'
-    GROUP BY closest_major_city
-    ORDER BY members DESC
-  `;
+  const [rows, engagement] = await Promise.all([
+    meqDb
+      .select({
+        eventflowContactId: schema.members.eventflowContactId,
+        city: schema.members.closestMajorCity,
+        qualityScore: schema.memberQuality.qualityScore,
+        qualityTier: schema.memberQuality.qualityTier,
+      })
+      .from(schema.members)
+      .leftJoin(schema.memberQuality, eq(schema.memberQuality.memberId, schema.members.id))
+      .where(isNotNull(schema.members.closestMajorCity)),
+    getEngagement(90),
+  ]);
+
+  // Engagement by EventFlow contact id (matches MEQ members.eventflow_contact_id).
+  const engByEf = new Map<string, { score: number; tier: string }>();
+  for (const m of engagement.members) {
+    if (m.key.startsWith("c:")) engByEf.set(m.key.slice(2), { score: m.total, tier: m.tier });
+  }
+
+  type Agg = {
+    members: number;
+    qSum: number;
+    qN: number;
+    eSum: number;
+    eN: number;
+    highQuality: number;
+    champions: number;
+    priority: number;
+  };
+  const cityAgg = new Map<string, Agg>();
+
+  for (const r of rows) {
+    const city = r.city;
+    if (!city || !city.trim() || city === "N/A") continue;
+    let agg = cityAgg.get(city);
+    if (!agg) {
+      agg = {
+        members: 0,
+        qSum: 0,
+        qN: 0,
+        eSum: 0,
+        eN: 0,
+        highQuality: 0,
+        champions: 0,
+        priority: 0,
+      };
+      cityAgg.set(city, agg);
+    }
+    agg.members += 1;
+    if (r.qualityScore != null) {
+      agg.qSum += r.qualityScore;
+      agg.qN += 1;
+    }
+    const isHighQ = r.qualityTier === "Platinum" || r.qualityTier === "Gold";
+    if (isHighQ) agg.highQuality += 1;
+
+    const eng = r.eventflowContactId ? engByEf.get(r.eventflowContactId) : null;
+    if (eng) {
+      agg.eSum += eng.score;
+      agg.eN += 1;
+    }
+    const isChamp = eng?.tier === "Champion" || eng?.tier === "Active";
+    if (isChamp) agg.champions += 1;
+
+    // Priority outreach = strategic member who isn't actively engaging.
+    if (isHighQ && !isChamp) agg.priority += 1;
+  }
 
   const points: CityPoint[] = [];
   const unmatched: UnmatchedCity[] = [];
-
-  for (const row of rows) {
-    const geo = CITY_GEO[row.city];
+  for (const [city, agg] of cityAgg) {
+    const geo = CITY_GEO[city];
     if (geo) {
-      points.push({ ...geo, members: row.members });
+      points.push({
+        ...geo,
+        members: agg.members,
+        avgQuality: agg.qN ? Math.round(agg.qSum / agg.qN) : null,
+        avgEngagement: agg.eN ? Math.round(agg.eSum / agg.eN) : null,
+        highQuality: agg.highQuality,
+        champions: agg.champions,
+        priority: agg.priority,
+      });
     } else {
-      unmatched.push({ city: row.city, members: row.members });
+      unmatched.push({ city, members: agg.members });
     }
   }
+
+  points.sort((a, b) => b.members - a.members);
 
   const totalMembers = points.reduce((s, p) => s + p.members, 0);
   const countries = new Set(points.map((p) => p.country));
