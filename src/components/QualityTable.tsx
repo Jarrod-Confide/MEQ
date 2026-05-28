@@ -6,6 +6,8 @@ import type { QualityRow } from "@/lib/quality-data";
 import { TIER_COLOR } from "@/lib/quality-tiers";
 import { TIER_COLOR as ENGAGEMENT_TIER_COLOR } from "./engagement-ui";
 
+type SortKey = "qualityScore" | "engagementScore" | "name";
+
 type FilterKey =
   | "all"
   | "platinum"
@@ -54,9 +56,11 @@ function matches(r: QualityRow, f: FilterKey): boolean {
 export function QualityTable({ rows }: { rows: QualityRow[] }) {
   const [filter, setFilter] = useState<FilterKey>("all");
   const [q, setQ] = useState("");
+  const [sort, setSort] = useState<SortKey>("qualityScore");
+  const [asc, setAsc] = useState(false);
 
   const view = useMemo(() => {
-    return rows.filter((r) => {
+    const filtered = rows.filter((r) => {
       if (!matches(r, filter)) return false;
       if (q.trim()) {
         const hay = `${r.name ?? ""} ${r.company ?? ""}`.toLowerCase();
@@ -64,7 +68,29 @@ export function QualityTable({ rows }: { rows: QualityRow[] }) {
       }
       return true;
     });
-  }, [rows, filter, q]);
+    const dir = asc ? 1 : -1;
+    return [...filtered].sort((a, b) => {
+      if (sort === "name") {
+        return dir * (a.name ?? "").localeCompare(b.name ?? "");
+      }
+      const av = a[sort];
+      const bv = b[sort];
+      // Nulls always last regardless of direction.
+      if (av == null && bv == null) return 0;
+      if (av == null) return 1;
+      if (bv == null) return -1;
+      return dir * ((av as number) - (bv as number));
+    });
+  }, [rows, filter, q, sort, asc]);
+
+  const onSort = (k: SortKey) => {
+    if (sort === k) setAsc(!asc);
+    else {
+      setSort(k);
+      setAsc(k === "name"); // names default ascending; scores default descending
+    }
+  };
+  const arrow = (k: SortKey) => (sort === k ? (asc ? " ↑" : " ↓") : "");
 
   return (
     <div>
@@ -95,16 +121,31 @@ export function QualityTable({ rows }: { rows: QualityRow[] }) {
           <thead>
             <tr className="bg-[#111726] text-left text-[11px] uppercase tracking-wide text-[#9bb0d4]">
               <th className="px-3 py-2.5 font-medium">#</th>
-              <th className="px-3 py-2.5 font-medium">Score</th>
+              <th
+                className="cursor-pointer px-3 py-2.5 font-medium hover:text-white"
+                onClick={() => onSort("qualityScore")}
+              >
+                Score{arrow("qualityScore")}
+              </th>
               <th className="px-3 py-2.5 font-medium">Tier</th>
-              <th className="px-3 py-2.5 font-medium">Member</th>
+              <th
+                className="cursor-pointer px-3 py-2.5 font-medium hover:text-white"
+                onClick={() => onSort("name")}
+              >
+                Member{arrow("name")}
+              </th>
               <th className="px-3 py-2.5 font-medium">Company</th>
               <th className="px-3 py-2.5 font-medium">Co. size</th>
               <th className="px-3 py-2.5 font-medium">Seniority</th>
               <th className="px-3 py-2.5 font-medium">Reports to</th>
               <th className="px-3 py-2.5 font-medium">Team</th>
               <th className="px-3 py-2.5 font-medium">Employment</th>
-              <th className="px-3 py-2.5 font-medium">Engagement</th>
+              <th
+                className="cursor-pointer px-3 py-2.5 font-medium hover:text-white"
+                onClick={() => onSort("engagementScore")}
+              >
+                Engagement{arrow("engagementScore")}
+              </th>
             </tr>
           </thead>
           <tbody>
