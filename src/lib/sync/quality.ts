@@ -87,8 +87,11 @@ export async function enrichQuality(): Promise<QualityStats> {
     ),
   ];
   const companies = await batchRead("companies", companyIds, ["company_size", "name"]);
-  const companySizeById = new Map(
-    companies.map((c) => [c.id, c.properties.company_size || null])
+  const companyById = new Map(
+    companies.map((c) => [
+      c.id,
+      { size: c.properties.company_size || null, name: c.properties.name || null },
+    ])
   );
 
   const now = new Date();
@@ -101,12 +104,14 @@ export async function enrichQuality(): Promise<QualityStats> {
     if (!member) continue;
     const p = c.properties;
 
-    const company = p.company || member.company || null;
-    // Prefer the associated company's company_size; fall back to the
-    // (sparser) contact-level numemployees.
+    // Use the canonical associated COMPANY record for name + size; fall back
+    // to the contact's free-text company/numemployees only when there's no
+    // company association. The company object's name is deduped and more
+    // reliable for Fortune 2000 matching than the contact free-text.
     const primaryCompanyId = contactToCompanies.get(c.id)?.[0];
-    const companySize =
-      (primaryCompanyId ? companySizeById.get(primaryCompanyId) : null) || p.numemployees || null;
+    const companyObj = primaryCompanyId ? companyById.get(primaryCompanyId) : null;
+    const company = companyObj?.name || p.company || member.company || null;
+    const companySize = companyObj?.size || p.numemployees || null;
     const employmentType = classifyEmployment(p.current_employment_status);
     const isF2000 = isFortune2000(company);
     const isHigh = isF2000; // v1 definition
