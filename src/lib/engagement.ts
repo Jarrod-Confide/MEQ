@@ -81,6 +81,9 @@ export type MemberScore = {
   tier: Tier;
   signals: SignalCounts;
   lastActiveAt: string | null;
+  // Decorated server-side from MEQ's member_quality (cross-pollination).
+  qualityScore?: number | null;
+  qualityTier?: string | null;
 };
 
 export type EngagementResult = {

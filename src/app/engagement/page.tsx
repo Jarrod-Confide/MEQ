@@ -4,6 +4,7 @@ import { TIERS } from "@/lib/engagement";
 import { EngagementTable } from "@/components/EngagementTable";
 import { RefreshButton } from "@/components/RefreshButton";
 import { TIER_COLOR } from "@/components/engagement-ui";
+import { fetchQualityByEventflowId } from "@/lib/quality-data";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +17,19 @@ export default async function EngagementPage({
   const days = WINDOWS.some((w) => String(w.days) === daysParam)
     ? Number(daysParam)
     : 90;
-  const data = await getEngagement(days);
+  const [data, qualityByEf] = await Promise.all([
+    getEngagement(days),
+    fetchQualityByEventflowId(),
+  ]);
+
+  // Decorate each member with their quality (when matched to an EventFlow contact).
+  const enrichedMembers = data.members.map((m) => {
+    if (m.key.startsWith("c:")) {
+      const q = qualityByEf.get(m.key.slice(2));
+      return { ...m, qualityScore: q?.score ?? null, qualityTier: q?.tier ?? null };
+    }
+    return m;
+  });
 
   return (
     <div className="min-h-screen">
@@ -97,7 +110,7 @@ export default async function EngagementPage({
           but scores 0 until speakers are linked to contacts in EventFlow.
         </p>
 
-        <EngagementTable members={data.members} />
+        <EngagementTable members={enrichedMembers} />
       </main>
     </div>
   );

@@ -2,11 +2,29 @@ import Link from "next/link";
 import { fetchQuality } from "@/lib/quality-data";
 import { QUALITY_TIER_ORDER, TIER_COLOR } from "@/lib/quality-tiers";
 import { QualityTable } from "@/components/QualityTable";
+import { getEngagement } from "@/lib/engagement-cache";
 
 export const dynamic = "force-dynamic";
 
 export default async function QualityPage() {
-  const data = await fetchQuality();
+  const [data, engagement] = await Promise.all([fetchQuality(), getEngagement(90)]);
+
+  // Decorate each quality row with the matching engagement score/tier.
+  // Engagement member keys are `c:<eventflow_contact_id>` for matched members.
+  const engagementByEf = new Map<string, { score: number; tier: string }>();
+  for (const m of engagement.members) {
+    if (m.key.startsWith("c:")) {
+      engagementByEf.set(m.key.slice(2), { score: m.total, tier: m.tier });
+    }
+  }
+  const enriched = data.rows.map((r) => {
+    const e = r.eventflowContactId ? engagementByEf.get(r.eventflowContactId) : null;
+    return {
+      ...r,
+      engagementScore: e?.score ?? null,
+      engagementTier: e?.tier ?? null,
+    };
+  });
 
   const stat = (label: string, value: number, color = "#8ab4ff") => (
     <span className="flex items-center gap-1.5 text-[13px]">
@@ -72,7 +90,7 @@ export default async function QualityPage() {
           quality, signal.
         </p>
 
-        <QualityTable rows={data.rows} />
+        <QualityTable rows={enriched} />
       </main>
     </div>
   );

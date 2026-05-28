@@ -1,11 +1,39 @@
-import { desc } from "drizzle-orm";
+import { desc, eq, isNotNull } from "drizzle-orm";
 import { meqDb, schema } from "./db/meq";
 import { QUALITY_TIER_ORDER } from "./quality-tiers";
 
 export { QUALITY_TIER_ORDER };
 
+/**
+ * Quality scores keyed by EventFlow contact id (matches the engagement
+ * scorer's `c:<eventflow_contact_id>` member keys). Lets the engagement
+ * page decorate each member with their quality tier without re-querying.
+ */
+export async function fetchQualityByEventflowId(): Promise<
+  Map<string, { score: number | null; tier: string | null }>
+> {
+  const rows = await meqDb
+    .select({
+      eventflowContactId: schema.members.eventflowContactId,
+      qualityScore: schema.memberQuality.qualityScore,
+      qualityTier: schema.memberQuality.qualityTier,
+    })
+    .from(schema.memberQuality)
+    .innerJoin(schema.members, eq(schema.memberQuality.memberId, schema.members.id))
+    .where(isNotNull(schema.members.eventflowContactId));
+
+  const m = new Map<string, { score: number | null; tier: string | null }>();
+  for (const r of rows) {
+    if (r.eventflowContactId) {
+      m.set(r.eventflowContactId, { score: r.qualityScore, tier: r.qualityTier });
+    }
+  }
+  return m;
+}
+
 export type QualityRow = {
   memberId: string;
+  eventflowContactId: string | null;
   name: string | null;
   company: string | null;
   companySize: string | null;
@@ -22,6 +50,9 @@ export type QualityRow = {
   authorityScore: number | null;
   teamScore: number | null;
   employmentScore: number | null;
+  // Decorated server-side from the engagement leaderboard (cached).
+  engagementScore?: number | null;
+  engagementTier?: string | null;
 };
 
 export type QualityData = {
@@ -42,6 +73,7 @@ export async function fetchQuality(): Promise<QualityData> {
   const rows = await meqDb
     .select({
       memberId: schema.memberQuality.memberId,
+      eventflowContactId: schema.members.eventflowContactId,
       name: schema.memberQuality.name,
       company: schema.memberQuality.company,
       companySize: schema.memberQuality.companySize,
@@ -61,10 +93,12 @@ export async function fetchQuality(): Promise<QualityData> {
       syncedAt: schema.memberQuality.syncedAt,
     })
     .from(schema.memberQuality)
+    .leftJoin(schema.members, eq(schema.memberQuality.memberId, schema.members.id))
     .orderBy(desc(schema.memberQuality.qualityScore), schema.memberQuality.name);
 
   const mapped: QualityRow[] = rows.map((r) => ({
     memberId: r.memberId,
+    eventflowContactId: r.eventflowContactId ?? null,
     name: r.name,
     company: r.company,
     companySize: r.companySize,

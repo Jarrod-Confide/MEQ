@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { QualityRow } from "@/lib/quality-data";
 import { TIER_COLOR } from "@/lib/quality-tiers";
+import { TIER_COLOR as ENGAGEMENT_TIER_COLOR } from "./engagement-ui";
 
 type FilterKey =
   | "all"
@@ -103,6 +104,7 @@ export function QualityTable({ rows }: { rows: QualityRow[] }) {
               <th className="px-3 py-2.5 font-medium">Reports to</th>
               <th className="px-3 py-2.5 font-medium">Team</th>
               <th className="px-3 py-2.5 font-medium">Employment</th>
+              <th className="px-3 py-2.5 font-medium">Engagement</th>
             </tr>
           </thead>
           <tbody>
@@ -171,6 +173,35 @@ export function QualityTable({ rows }: { rows: QualityRow[] }) {
                 </td>
                 <td className="px-3 py-2 text-[#9bb0d4]">
                   {EMPLOYMENT_LABEL[r.employmentType ?? "unknown"] ?? "—"}
+                </td>
+                <td className="px-3 py-2">
+                  {r.engagementScore != null ? (
+                    <span className="flex items-center gap-1.5">
+                      <span className="font-semibold tabular-nums text-white">
+                        {r.engagementScore.toFixed(0)}
+                      </span>
+                      {r.engagementTier && (
+                        <span
+                          className="rounded-full px-1.5 py-0.5 text-[10px] font-semibold"
+                          style={{
+                            background: `${
+                              ENGAGEMENT_TIER_COLOR[
+                                r.engagementTier as keyof typeof ENGAGEMENT_TIER_COLOR
+                              ] ?? "#6a7da0"
+                            }22`,
+                            color:
+                              ENGAGEMENT_TIER_COLOR[
+                                r.engagementTier as keyof typeof ENGAGEMENT_TIER_COLOR
+                              ] ?? "#6a7da0",
+                          }}
+                        >
+                          {r.engagementTier}
+                        </span>
+                      )}
+                    </span>
+                  ) : (
+                    <span className="text-[#6a7da0]">—</span>
+                  )}
                 </td>
               </tr>
             ))}

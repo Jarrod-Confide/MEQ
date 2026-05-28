@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { MemberScore, Dimension } from "@/lib/engagement";
 import { TierBadge, DimBar, TIER_COLOR } from "./engagement-ui";
+import { TIER_COLOR as QUALITY_TIER_COLOR } from "@/lib/quality-tiers";
 
 type SortKey = "total" | Dimension | "name";
 
@@ -94,6 +95,7 @@ export function EngagementTable({ members }: { members: MemberScore[] }) {
               <th className="px-3 py-2.5 font-medium" title="posts / replies / reactions given / attended">
                 Activity
               </th>
+              <th className="px-3 py-2.5 font-medium">Quality</th>
             </tr>
           </thead>
           <tbody>
@@ -140,6 +142,28 @@ export function EngagementTable({ members }: { members: MemberScore[] }) {
                 <td className="px-3 py-2 tabular-nums text-[11px] text-[#9bb0d4]">
                   {m.signals.posts}p · {m.signals.replies}r · {m.signals.reactionsGiven}rx ·{" "}
                   {m.signals.eventsAttended}🎟
+                </td>
+                <td className="px-3 py-2">
+                  {m.qualityScore != null ? (
+                    <span className="flex items-center gap-1.5">
+                      <span className="font-semibold tabular-nums text-white">
+                        {m.qualityScore}
+                      </span>
+                      {m.qualityTier && (
+                        <span
+                          className="rounded-full px-1.5 py-0.5 text-[10px] font-semibold"
+                          style={{
+                            background: `${QUALITY_TIER_COLOR[m.qualityTier] ?? "#6a7da0"}22`,
+                            color: QUALITY_TIER_COLOR[m.qualityTier] ?? "#6a7da0",
+                          }}
+                        >
+                          {m.qualityTier}
+                        </span>
+                      )}
+                    </span>
+                  ) : (
+                    <span className="text-[#6a7da0]">—</span>
+                  )}
                 </td>
               </tr>
             ))}
