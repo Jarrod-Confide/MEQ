@@ -1,5 +1,8 @@
 import { desc } from "drizzle-orm";
 import { meqDb, schema } from "./db/meq";
+import { QUALITY_TIER_ORDER } from "./quality-tiers";
+
+export { QUALITY_TIER_ORDER };
 
 export type QualityRow = {
   memberId: string;
@@ -34,8 +37,6 @@ export type QualityData = {
   tierCounts: Record<string, number>;
   syncedAt: string | null;
 };
-
-export const QUALITY_TIER_ORDER = ["Platinum", "Gold", "Silver", "Bronze", "Unranked"];
 
 export async function fetchQuality(): Promise<QualityData> {
   const rows = await meqDb

@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { QualityRow } from "@/lib/quality-data";
+import { TIER_COLOR } from "@/lib/quality-tiers";
 
 type FilterKey =
   | "all"
@@ -22,14 +23,6 @@ const FILTERS: { key: FilterKey; label: string }[] = [
   { key: "clevel", label: "C-Level" },
   { key: "self", label: "Self-employed" },
 ];
-
-export const TIER_COLOR: Record<string, string> = {
-  Platinum: "#c4b5fd",
-  Gold: "#fbbf24",
-  Silver: "#cbd5e1",
-  Bronze: "#d8956b",
-  Unranked: "#6a7da0",
-};
 
 const EMPLOYMENT_LABEL: Record<string, string> = {
   employed: "Employed",

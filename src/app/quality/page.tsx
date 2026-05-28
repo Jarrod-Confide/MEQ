@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { fetchQuality, QUALITY_TIER_ORDER } from "@/lib/quality-data";
-import { QualityTable, TIER_COLOR } from "@/components/QualityTable";
+import { fetchQuality } from "@/lib/quality-data";
+import { QUALITY_TIER_ORDER, TIER_COLOR } from "@/lib/quality-tiers";
+import { QualityTable } from "@/components/QualityTable";
 
 export const dynamic = "force-dynamic";
 
