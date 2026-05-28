@@ -102,6 +102,14 @@ export const memberQuality = pgTable("member_quality", {
   isHighQuality: boolean("is_high_quality").notNull().default(false),
   tags: jsonb("tags").$type<string[]>().default([]),
 
+  // ── Quality ranking (0–100 weighted score + subscores + tier) ──
+  qualityScore: integer("quality_score"),
+  qualityTier: text("quality_tier"),
+  prominenceScore: integer("prominence_score"),
+  authorityScore: integer("authority_score"),
+  teamScore: integer("team_score"),
+  employmentScore: integer("employment_score"),
+
   syncedAt: timestamp("synced_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),

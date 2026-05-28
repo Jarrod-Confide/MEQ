@@ -15,6 +15,13 @@
       "when": 1779924828269,
       "tag": "0001_aberrant_crystal",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1779928603803,
+      "tag": "0002_minor_lake",
+      "breakpoints": true
     }
   ]
 }

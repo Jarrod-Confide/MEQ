@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { fetchQuality } from "@/lib/quality-data";
-import { QualityTable } from "@/components/QualityTable";
+import { fetchQuality, QUALITY_TIER_ORDER } from "@/lib/quality-data";
+import { QualityTable, TIER_COLOR } from "@/components/QualityTable";
 
 export const dynamic = "force-dynamic";
 
@@ -42,9 +42,20 @@ export default async function QualityPage() {
       </header>
 
       <main className="px-6 py-5">
-        <div className="mb-5 flex flex-wrap gap-5">
+        <div className="mb-3 flex flex-wrap gap-5">
           {stat("members", data.total, "#cfdaee")}
-          {stat("high quality", data.stats.highQuality, "#22c55e")}
+          {QUALITY_TIER_ORDER.map((t) => (
+            <span key={t} className="flex items-center gap-1.5 text-[13px]">
+              <span
+                className="inline-block h-2.5 w-2.5 rounded-full"
+                style={{ background: TIER_COLOR[t] }}
+              />
+              <b className="tabular-nums text-white">{data.tierCounts[t] ?? 0}</b>
+              <span className="text-[#9bb0d4]">{t}</span>
+            </span>
+          ))}
+        </div>
+        <div className="mb-5 flex flex-wrap gap-5">
           {stat("Fortune 2000", data.stats.fortune2000, "#a78bfa")}
           {stat("report to CEO", data.stats.reportsToCeo)}
           {stat("C-Level", data.stats.cLevel)}
@@ -52,11 +63,12 @@ export default async function QualityPage() {
         </div>
 
         <p className="mb-4 max-w-prose text-[12px] leading-relaxed text-[#6a7da0]">
-          Employer attributes from HubSpot (employment, reporting line, seniority,
-          team size, company size). <b className="text-[#9bb0d4]">High quality (v1)</b>{" "}
-          = works for a Fortune 2000 company — expandable with seniority/team-size
-          thresholds. Many HubSpot fields are sparsely filled, so blanks reflect
-          missing CRM data, not the member.
+          <b className="text-[#9bb0d4]">Quality score (0–100, v1)</b> = 0.35 company
+          prominence (Fortune 2000 + size) + 0.30 authority (seniority + reporting
+          line) + 0.20 team size + 0.15 employment. Tiers: Platinum ≥80, Gold ≥60,
+          Silver ≥40, Bronze ≥20. Sourced from HubSpot; sparse fields (blanks) lower
+          a score rather than the member being low-value — a data-completeness, not
+          quality, signal.
         </p>
 
         <QualityTable rows={data.rows} />

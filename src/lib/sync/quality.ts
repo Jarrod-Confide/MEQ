@@ -2,6 +2,7 @@ import { sql, isNotNull } from "drizzle-orm";
 import { meqDb, schema } from "../db/meq";
 import { batchReadContacts, batchRead, batchReadAssociations } from "../hubspot";
 import { isFortune2000 } from "../fortune";
+import { computeQuality } from "../quality-score";
 import type { NewMemberQuality } from "../db/schema";
 
 export type QualityStats = {
@@ -126,6 +127,15 @@ export async function enrichQuality(): Promise<QualityStats> {
       isFortune2000: isF2000,
     });
 
+    const q = computeQuality({
+      companySize,
+      isFortune2000: isF2000,
+      seniority: p.hs_seniority,
+      reportingTo: p.reporting_to_,
+      teamSize: p.team_size,
+      employmentType,
+    });
+
     byMember.set(member.id, {
       memberId: member.id,
       name,
@@ -139,6 +149,12 @@ export async function enrichQuality(): Promise<QualityStats> {
       isFortune2000: isF2000,
       isHighQuality: isHigh,
       tags,
+      qualityScore: q.score,
+      qualityTier: q.tier,
+      prominenceScore: q.prominence,
+      authorityScore: q.authority,
+      teamScore: q.team,
+      employmentScore: q.employment,
       syncedAt: now,
       updatedAt: now,
     });
@@ -168,6 +184,12 @@ export async function enrichQuality(): Promise<QualityStats> {
           isFortune2000: sql`excluded.is_fortune_2000`,
           isHighQuality: sql`excluded.is_high_quality`,
           tags: sql`excluded.tags`,
+          qualityScore: sql`excluded.quality_score`,
+          qualityTier: sql`excluded.quality_tier`,
+          prominenceScore: sql`excluded.prominence_score`,
+          authorityScore: sql`excluded.authority_score`,
+          teamScore: sql`excluded.team_score`,
+          employmentScore: sql`excluded.employment_score`,
           syncedAt: sql`excluded.synced_at`,
           updatedAt: sql`excluded.updated_at`,
         },

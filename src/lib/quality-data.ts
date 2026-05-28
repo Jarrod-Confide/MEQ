@@ -13,6 +13,12 @@ export type QualityRow = {
   isFortune2000: boolean;
   isHighQuality: boolean;
   tags: string[];
+  qualityScore: number | null;
+  qualityTier: string | null;
+  prominenceScore: number | null;
+  authorityScore: number | null;
+  teamScore: number | null;
+  employmentScore: number | null;
 };
 
 export type QualityData = {
@@ -25,19 +31,11 @@ export type QualityData = {
     reportsToCeo: number;
     cLevel: number;
   };
+  tierCounts: Record<string, number>;
   syncedAt: string | null;
 };
 
-/** Ordering so the most "senior" levels sort first in the table. */
-const SENIORITY_RANK: Record<string, number> = {
-  "C-Level": 6,
-  owner: 5,
-  partner: 5,
-  vp: 4,
-  director: 3,
-  manager: 2,
-  "In Transition": 1,
-};
+export const QUALITY_TIER_ORDER = ["Platinum", "Gold", "Silver", "Bronze", "Unranked"];
 
 export async function fetchQuality(): Promise<QualityData> {
   const rows = await meqDb
@@ -53,10 +51,16 @@ export async function fetchQuality(): Promise<QualityData> {
       isFortune2000: schema.memberQuality.isFortune2000,
       isHighQuality: schema.memberQuality.isHighQuality,
       tags: schema.memberQuality.tags,
+      qualityScore: schema.memberQuality.qualityScore,
+      qualityTier: schema.memberQuality.qualityTier,
+      prominenceScore: schema.memberQuality.prominenceScore,
+      authorityScore: schema.memberQuality.authorityScore,
+      teamScore: schema.memberQuality.teamScore,
+      employmentScore: schema.memberQuality.employmentScore,
       syncedAt: schema.memberQuality.syncedAt,
     })
     .from(schema.memberQuality)
-    .orderBy(desc(schema.memberQuality.isHighQuality), schema.memberQuality.name);
+    .orderBy(desc(schema.memberQuality.qualityScore), schema.memberQuality.name);
 
   const mapped: QualityRow[] = rows.map((r) => ({
     memberId: r.memberId,
@@ -70,18 +74,19 @@ export async function fetchQuality(): Promise<QualityData> {
     isFortune2000: r.isFortune2000,
     isHighQuality: r.isHighQuality,
     tags: r.tags ?? [],
+    qualityScore: r.qualityScore,
+    qualityTier: r.qualityTier,
+    prominenceScore: r.prominenceScore,
+    authorityScore: r.authorityScore,
+    teamScore: r.teamScore,
+    employmentScore: r.employmentScore,
   }));
 
-  // Stable secondary sort by seniority rank within the high-quality grouping.
-  mapped.sort((a, b) => {
-    if (a.isHighQuality !== b.isHighQuality) return a.isHighQuality ? -1 : 1;
-    const rb = (b.seniority && SENIORITY_RANK[b.seniority]) || 0;
-    const ra = (a.seniority && SENIORITY_RANK[a.seniority]) || 0;
-    if (rb !== ra) return rb - ra;
-    return (a.name ?? "").localeCompare(b.name ?? "");
-  });
-
   const has = (r: QualityRow, t: string) => r.tags.includes(t);
+  const tierCounts: Record<string, number> = {};
+  for (const t of QUALITY_TIER_ORDER) tierCounts[t] = 0;
+  for (const r of mapped) if (r.qualityTier) tierCounts[r.qualityTier] = (tierCounts[r.qualityTier] ?? 0) + 1;
+
   return {
     rows: mapped,
     total: mapped.length,
@@ -92,6 +97,7 @@ export async function fetchQuality(): Promise<QualityData> {
       reportsToCeo: mapped.filter((r) => has(r, "reports_to_ceo")).length,
       cLevel: mapped.filter((r) => has(r, "c_level")).length,
     },
+    tierCounts,
     syncedAt: rows[0]?.syncedAt ? new Date(rows[0].syncedAt).toISOString() : null,
   };
 }
