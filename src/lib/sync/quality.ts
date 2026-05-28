@@ -1,6 +1,6 @@
 import { sql, isNotNull } from "drizzle-orm";
 import { meqDb, schema } from "../db/meq";
-import { batchReadContacts } from "../hubspot";
+import { batchReadContacts, batchRead, batchReadAssociations } from "../hubspot";
 import { isFortune2000 } from "../fortune";
 import type { NewMemberQuality } from "../db/schema";
 
@@ -74,9 +74,21 @@ export async function enrichQuality(): Promise<QualityStats> {
     .where(isNotNull(schema.members.hubspotContactId));
 
   const idToMember = new Map(rows.map((r) => [r.hubspotContactId as string, r]));
-  const contacts = await batchReadContacts(
-    rows.map((r) => r.hubspotContactId as string),
-    HS_PROPS
+  const contactIds = rows.map((r) => r.hubspotContactId as string);
+  const contacts = await batchReadContacts(contactIds, HS_PROPS);
+
+  // Company size lives on the associated COMPANY (company_size enum range),
+  // which is far better populated than the contact's numemployees. Resolve
+  // each contact's primary company, then read its size.
+  const contactToCompanies = await batchReadAssociations("contacts", "companies", contactIds);
+  const companyIds = [
+    ...new Set(
+      [...contactToCompanies.values()].map((ids) => ids[0]).filter((id): id is string => !!id)
+    ),
+  ];
+  const companies = await batchRead("companies", companyIds, ["company_size", "name"]);
+  const companySizeById = new Map(
+    companies.map((c) => [c.id, c.properties.company_size || null])
   );
 
   const now = new Date();
@@ -90,6 +102,11 @@ export async function enrichQuality(): Promise<QualityStats> {
     const p = c.properties;
 
     const company = p.company || member.company || null;
+    // Prefer the associated company's company_size; fall back to the
+    // (sparser) contact-level numemployees.
+    const primaryCompanyId = contactToCompanies.get(c.id)?.[0];
+    const companySize =
+      (primaryCompanyId ? companySizeById.get(primaryCompanyId) : null) || p.numemployees || null;
     const employmentType = classifyEmployment(p.current_employment_status);
     const isF2000 = isFortune2000(company);
     const isHigh = isF2000; // v1 definition
@@ -108,7 +125,7 @@ export async function enrichQuality(): Promise<QualityStats> {
       memberId: member.id,
       name,
       company,
-      companySize: p.numemployees || null,
+      companySize,
       employmentStatus: p.current_employment_status || null,
       reportingTo: p.reporting_to_ || null,
       seniority: p.hs_seniority || null,
