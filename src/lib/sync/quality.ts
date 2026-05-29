@@ -90,11 +90,19 @@ export async function enrichQuality(): Promise<QualityStats> {
       [...contactToCompanies.values()].map((ids) => ids[0]).filter((id): id is string => !!id)
     ),
   ];
-  const companies = await batchRead("companies", companyIds, ["company_size", "name"]);
+  const companies = await batchRead("companies", companyIds, [
+    "company_size",
+    "name",
+    "industry",
+  ]);
   const companyById = new Map(
     companies.map((c) => [
       c.id,
-      { size: c.properties.company_size || null, name: c.properties.name || null },
+      {
+        size: c.properties.company_size || null,
+        name: c.properties.name || null,
+        industry: c.properties.industry || null,
+      },
     ])
   );
 
@@ -143,6 +151,7 @@ export async function enrichQuality(): Promise<QualityStats> {
     const companyObj = primaryCompanyId ? companyById.get(primaryCompanyId) : null;
     const company = companyObj?.name || p.company || member.company || null;
     const companySize = companyObj?.size || p.numemployees || null;
+    const industry = companyObj?.industry || null;
     const employmentType = classifyEmployment(p.current_employment_status);
     const isF2000 = isFortune2000(company);
     const isHigh = isF2000; // v1 definition
@@ -170,6 +179,7 @@ export async function enrichQuality(): Promise<QualityStats> {
       memberId: member.id,
       name,
       company,
+      industry,
       companySize,
       employmentStatus: p.current_employment_status || null,
       reportingTo: p.reporting_to_ || null,
@@ -205,6 +215,7 @@ export async function enrichQuality(): Promise<QualityStats> {
         set: {
           name: sql`excluded.name`,
           company: sql`excluded.company`,
+          industry: sql`excluded.industry`,
           companySize: sql`excluded.company_size`,
           employmentStatus: sql`excluded.employment_status`,
           reportingTo: sql`excluded.reporting_to`,

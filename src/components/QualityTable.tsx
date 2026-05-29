@@ -34,6 +34,19 @@ const EMPLOYMENT_LABEL: Record<string, string> = {
   unknown: "—",
 };
 
+// HubSpot industry is an enum value (e.g. "COMPUTER_SOFTWARE"). Custom options
+// are already human-readable (e.g. "Software Development"); the rest are
+// SCREAMING_SNAKE codes we title-case for display.
+function formatIndustry(raw: string | null): string | null {
+  if (!raw || raw === "N/A") return null;
+  if (!/^[A-Z0-9_]+$/.test(raw)) return raw; // already a readable custom label
+  return raw
+    .toLowerCase()
+    .split("_")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+}
+
 function matches(r: QualityRow, f: FilterKey): boolean {
   switch (f) {
     case "platinum":
@@ -63,7 +76,7 @@ export function QualityTable({ rows }: { rows: QualityRow[] }) {
     const filtered = rows.filter((r) => {
       if (!matches(r, filter)) return false;
       if (q.trim()) {
-        const hay = `${r.name ?? ""} ${r.company ?? ""}`.toLowerCase();
+        const hay = `${r.name ?? ""} ${r.company ?? ""} ${formatIndustry(r.industry) ?? ""}`.toLowerCase();
         if (!hay.includes(q.toLowerCase())) return false;
       }
       return true;
@@ -135,6 +148,7 @@ export function QualityTable({ rows }: { rows: QualityRow[] }) {
                 Member{arrow("name")}
               </th>
               <th className="px-3 py-2.5 font-medium">Company</th>
+              <th className="px-3 py-2.5 font-medium">Industry</th>
               <th className="px-3 py-2.5 font-medium">Co. size</th>
               <th className="px-3 py-2.5 font-medium">Seniority</th>
               <th className="px-3 py-2.5 font-medium">Reports to</th>
@@ -190,6 +204,7 @@ export function QualityTable({ rows }: { rows: QualityRow[] }) {
                     </span>
                   )}
                 </td>
+                <td className="px-3 py-2 text-[#9bb0d4]">{formatIndustry(r.industry) ?? "—"}</td>
                 <td className="px-3 py-2 text-[#9bb0d4]">{r.companySize ?? "—"}</td>
                 <td className="px-3 py-2 text-[#9bb0d4]">
                   {r.seniority && r.seniority !== "N/A" ? r.seniority : "—"}

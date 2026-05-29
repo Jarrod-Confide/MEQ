@@ -1,0 +1,1 @@
+ALTER TABLE "member_quality" ADD COLUMN "industry" text;

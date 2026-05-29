@@ -94,6 +94,7 @@ export const memberQuality = pgTable("member_quality", {
   // Denormalized for a self-contained quality view.
   name: text("name"),
   company: text("company"),
+  industry: text("industry"), // company object's `industry` enum value (raw)
 
   // ── HubSpot contact properties (raw) ──
   companySize: text("company_size"), // numemployees: "1-5" … "1000+"

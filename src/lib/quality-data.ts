@@ -36,6 +36,7 @@ export type QualityRow = {
   eventflowContactId: string | null;
   name: string | null;
   company: string | null;
+  industry: string | null;
   companySize: string | null;
   employmentType: string | null;
   reportingTo: string | null;
@@ -76,6 +77,7 @@ export async function fetchQuality(): Promise<QualityData> {
       eventflowContactId: schema.members.eventflowContactId,
       name: schema.memberQuality.name,
       company: schema.memberQuality.company,
+      industry: schema.memberQuality.industry,
       companySize: schema.memberQuality.companySize,
       employmentType: schema.memberQuality.employmentType,
       reportingTo: schema.memberQuality.reportingTo,
@@ -101,6 +103,7 @@ export async function fetchQuality(): Promise<QualityData> {
     eventflowContactId: r.eventflowContactId ?? null,
     name: r.name,
     company: r.company,
+    industry: r.industry,
     companySize: r.companySize,
     employmentType: r.employmentType,
     reportingTo: r.reportingTo,
