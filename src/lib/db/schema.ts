@@ -47,6 +47,12 @@ export const members = pgTable(
     isFortune1000: boolean("is_fortune_1000"),
     companyTier: text("company_tier"),
 
+    // ── Membership lifecycle ──
+    // Sourced from HubSpot: prefer date_joined__the_ciso_society_; fall back
+    // to createdate. joined_source records which one was used.
+    joinedAt: timestamp("joined_at", { withTimezone: true }),
+    joinedSource: text("joined_source"),
+
     // ── Bookkeeping ──
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),

@@ -30,6 +30,12 @@ export default async function MemberMapPage() {
             Map
           </a>
           <a
+            href="/dashboard"
+            className="rounded-md px-3 py-1.5 text-[13px] text-[#9bb0d4] hover:bg-[#1a2238] hover:text-white"
+          >
+            Dashboard
+          </a>
+          <a
             href="/engagement"
             className="rounded-md px-3 py-1.5 text-[13px] text-[#9bb0d4] hover:bg-[#1a2238] hover:text-white"
           >

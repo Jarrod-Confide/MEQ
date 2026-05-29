@@ -1,4 +1,4 @@
-import { sql, isNotNull } from "drizzle-orm";
+import { sql, isNotNull, eq } from "drizzle-orm";
 import { meqDb, schema } from "../db/meq";
 import { batchReadContacts, batchRead, batchReadAssociations } from "../hubspot";
 import { isFortune2000 } from "../fortune";
@@ -12,6 +12,7 @@ export type QualityStats = {
   selfEmployed: number;
   fortune2000: number;
   highQuality: number;
+  joinedAtUpdated: number;
 };
 
 const HS_PROPS = [
@@ -23,6 +24,8 @@ const HS_PROPS = [
   "company",
   "firstname",
   "lastname",
+  "date_joined__the_ciso_society_",
+  "createdate",
 ];
 
 function classifyEmployment(status: string | null): string {
@@ -99,11 +102,38 @@ export async function enrichQuality(): Promise<QualityStats> {
   // Keyed by memberId so merged HubSpot contacts (which resolve to the same
   // canonical id) don't produce duplicate rows in one upsert batch.
   const byMember = new Map<string, NewMemberQuality>();
+  // Collected joined_at values, applied as a bulk member update after the
+  // quality upserts succeed.
+  const memberJoinedAt = new Map<string, { joinedAt: Date; source: string }>();
 
   for (const c of contacts) {
     const member = idToMember.get(c.id);
     if (!member) continue;
     const p = c.properties;
+
+    // Membership join date: prefer the CISO Society-specific property; fall
+    // back to HubSpot's contact createdate.
+    const dateJoinedStr = p.date_joined__the_ciso_society_;
+    const createdateStr = p.createdate;
+    let joinedAt: Date | null = null;
+    let joinedSource: string | null = null;
+    if (dateJoinedStr) {
+      const d = new Date(dateJoinedStr);
+      if (!isNaN(d.getTime())) {
+        joinedAt = d;
+        joinedSource = "date_joined";
+      }
+    }
+    if (!joinedAt && createdateStr) {
+      const d = new Date(createdateStr);
+      if (!isNaN(d.getTime())) {
+        joinedAt = d;
+        joinedSource = "createdate";
+      }
+    }
+    if (joinedAt && joinedSource) {
+      memberJoinedAt.set(member.id, { joinedAt, source: joinedSource });
+    }
 
     // Use the canonical associated COMPANY record for name + size; fall back
     // to the contact's free-text company/numemployees only when there's no
@@ -196,6 +226,23 @@ export async function enrichQuality(): Promise<QualityStats> {
       });
   }
 
+  // Bulk-update members.joined_at from the collected HubSpot dates.
+  // Parallel chunks of 50 — keeps the cron well under maxDuration.
+  const joinedEntries = [...memberJoinedAt.entries()];
+  let joinedAtUpdated = 0;
+  for (let i = 0; i < joinedEntries.length; i += 50) {
+    const slice = joinedEntries.slice(i, i + 50);
+    await Promise.all(
+      slice.map(([memberId, { joinedAt, source }]) =>
+        meqDb
+          .update(schema.members)
+          .set({ joinedAt, joinedSource: source, updatedAt: new Date() })
+          .where(eq(schema.members.id, memberId))
+      )
+    );
+    joinedAtUpdated += slice.length;
+  }
+
   return {
     membersWithHubspot: rows.length,
     hubspotFetched: contacts.length,
@@ -203,5 +250,6 @@ export async function enrichQuality(): Promise<QualityStats> {
     selfEmployed,
     fortune2000,
     highQuality,
+    joinedAtUpdated,
   };
 }

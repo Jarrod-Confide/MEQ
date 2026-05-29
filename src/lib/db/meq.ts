@@ -23,4 +23,6 @@ if (process.env.NODE_ENV !== "production") globalForMeq.meqClient = client;
 
 /** MEQ's own database — canonical members roster. */
 export const meqDb = drizzle(client, { schema });
+/** Raw postgres-js client for aggregation queries that are cleaner in SQL. */
+export const meqSql = client;
 export { schema };

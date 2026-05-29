@@ -48,6 +48,12 @@ export default async function EngagementPage({
             Map
           </Link>
           <Link
+            href="/dashboard"
+            className="rounded-md px-3 py-1.5 text-[13px] text-[#9bb0d4] hover:bg-[#1a2238] hover:text-white"
+          >
+            Dashboard
+          </Link>
+          <Link
             href="/engagement"
             className="rounded-md border border-[#2d3d5c] bg-[#1a2238] px-3 py-1.5 text-[13px] text-white"
           >
