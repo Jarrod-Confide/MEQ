@@ -9,11 +9,12 @@ export const TIER_COLOR: Record<Tier, string> = {
 };
 
 export const DIMENSION_LABEL: Record<Dimension, string> = {
-  presence: "Presence",
+  events: "Events",
   contribution: "Contribution",
   reciprocity: "Reciprocity",
-  reach: "Reach",
   depth: "Depth",
+  reach: "Reach",
+  presence: "Presence",
   connector: "Connector",
 };
 

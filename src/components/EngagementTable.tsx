@@ -9,11 +9,12 @@ import { TIER_COLOR as QUALITY_TIER_COLOR } from "@/lib/quality-tiers";
 type SortKey = "total" | Dimension | "name" | "quality";
 
 const DIM_COLS: { key: Dimension; label: string }[] = [
-  { key: "presence", label: "Pres" },
+  { key: "events", label: "Events" },
   { key: "contribution", label: "Contrib" },
   { key: "reciprocity", label: "Recip" },
-  { key: "reach", label: "Reach" },
   { key: "depth", label: "Depth" },
+  { key: "reach", label: "Reach" },
+  { key: "presence", label: "Pres" },
   { key: "connector", label: "Connect" },
 ];
 

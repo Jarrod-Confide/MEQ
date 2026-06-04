@@ -109,15 +109,16 @@ export default async function EngagementPage({
         </div>
 
         <p className="mb-4 max-w-prose text-[12px] leading-relaxed text-[#6a7da0]">
-          Composite of 6 dimensions (Presence · Contribution · Reciprocity ·
-          Reach · Depth · Connector) from Slackle messages + reactions and
-          EventFlow attendance, with a 90-day decay half-life. Each message is
-          scored by an LLM rubric for <b className="text-[#9bb0d4]">substance</b>{" "}
-          (CISO-relevance, knowledge shared) so a detailed answer outweighs
-          &ldquo;thanks!&rdquo; — content weight, not volume, drives
-          Contribution &amp; Reciprocity. Connector captures community-building
-          (job posts + member intros) at a deliberately small weight. Dimension
-          scores are normalized to the 95th-percentile member.
+          Composite of 7 dimensions, events-weighted:{" "}
+          <b className="text-[#9bb0d4]">Events 32%</b> · Contribution 20% ·
+          Reciprocity 16% · Depth 12% · Reach 10% · Presence 5% · Connector 5%.
+          Every Slackle message is scored 0–10 for{" "}
+          <b className="text-[#9bb0d4]">substance</b> by an LLM rubric tuned to a
+          CISO audience, so a detailed answer outweighs &ldquo;thanks!&rdquo; —
+          content weight, not volume, drives Contribution &amp; Reciprocity.
+          Depth = evidence-smoothed average substance (consistent quality, not a
+          single great post). Connector = job posts + member intros. 90-day
+          decay half-life; dimensions normalized to the 95th-percentile member.
         </p>
 
         <EngagementTable members={enrichedMembers} />

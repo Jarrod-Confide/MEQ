@@ -22,16 +22,24 @@ export const WEIGHTS = {
 } as const;
 
 /** How the dimensions roll up into the composite total. Must sum to 1.
- * `connector` (community-building: job posts + member intros) is a deliberate
- * small-weight contributor — it counts, but substantive knowledge dominates. */
+ * v2 "events-weighted" philosophy: in-person attendance is the single
+ * strongest engagement signal for the CISO Society, followed by substantive
+ * online contribution. `depth` = quality/substance of discussion (NOT events,
+ * which now have their own dimension). `connector` (job posts + member intros)
+ * is a deliberate small-weight contributor. All tunable. */
 export const DIMENSION_WEIGHTS = {
-  presence: 0.13,
-  contribution: 0.3,
-  reciprocity: 0.18,
-  reach: 0.12,
-  depth: 0.2,
-  connector: 0.07,
+  events: 0.32,
+  contribution: 0.2,
+  reciprocity: 0.16,
+  depth: 0.12,
+  reach: 0.1,
+  presence: 0.05,
+  connector: 0.05,
 } as const;
+
+/** Depth = evidence-weighted avg substance: Σsubstance / (count + K). Shrinks
+ * low-volume members toward 0 so a single great post can't max the axis. */
+export const DEPTH_SMOOTHING_K = 4;
 
 export type Dimension = keyof typeof DIMENSION_WEIGHTS;
 const DIMENSIONS = Object.keys(DIMENSION_WEIGHTS) as Dimension[];
@@ -307,7 +315,7 @@ export async function computeEngagement(
       hubspotContactId: hs,
       isMember,
       matched,
-      raw: { presence: 0, contribution: 0, reciprocity: 0, reach: 0, depth: 0, connector: 0 },
+      raw: { events: 0, contribution: 0, reciprocity: 0, depth: 0, reach: 0, presence: 0, connector: 0 },
       signals: blankSignals(),
       activeDays: new Map(),
       lastActiveMs: 0,
@@ -391,22 +399,23 @@ export async function computeEngagement(
     }
     const dec = decay(a.starts_at);
     if (a.status === "attended") {
-      acc.raw.depth += WEIGHTS.attended * dec;
-      acc.raw.presence += WEIGHTS.attended * dec * 0.2; // attendance is also presence
+      acc.raw.events += WEIGHTS.attended * dec;
       acc.signals.eventsAttended += 1;
       touch(acc, a.starts_at);
     } else if (a.status === "no_show") {
-      acc.raw.depth += WEIGHTS.noShow * dec;
+      acc.raw.events += WEIGHTS.noShow * dec;
       acc.signals.noShows += 1;
     }
   }
 
-  // Finalize active-days presence contribution + avgSubstance
+  // Finalize active-days presence + Depth (evidence-weighted avg substance)
   for (const acc of accs.values()) {
     let presenceDays = 0;
     for (const dec of acc.activeDays.values()) presenceDays += WEIGHTS.activeDay * dec;
     acc.raw.presence += presenceDays;
     acc.signals.activeDays = acc.activeDays.size;
+    // Depth: shrink toward 0 by K so a single high-substance post can't max it.
+    acc.raw.depth = acc.substanceSum / (acc.substanceCount + DEPTH_SMOOTHING_K);
     acc.signals.avgSubstance = acc.substanceCount
       ? Math.round((acc.substanceSum / acc.substanceCount) * 100) / 100
       : 0;
@@ -421,7 +430,7 @@ export async function computeEngagement(
   });
 
   // ── Normalize each dimension to 0–100 via the 95th-percentile member ──
-  const p95: Record<Dimension, number> = { presence: 0, contribution: 0, reciprocity: 0, reach: 0, depth: 0, connector: 0 };
+  const p95: Record<Dimension, number> = { events: 0, contribution: 0, reciprocity: 0, depth: 0, reach: 0, presence: 0, connector: 0 };
   for (const dim of DIMENSIONS) {
     const vals = scored.map((a) => a.raw[dim]).filter((v) => v > 0).sort((x, y) => x - y);
     p95[dim] = vals.length ? (vals[Math.floor(0.95 * (vals.length - 1))] || vals[vals.length - 1]) : 0;
