@@ -14,6 +14,7 @@ const DIM_COLS: { key: Dimension; label: string }[] = [
   { key: "reciprocity", label: "Recip" },
   { key: "reach", label: "Reach" },
   { key: "depth", label: "Depth" },
+  { key: "connector", label: "Connect" },
 ];
 
 export function EngagementTable({ members }: { members: MemberScore[] }) {

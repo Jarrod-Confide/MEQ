@@ -5,6 +5,7 @@ import {
   boolean,
   timestamp,
   integer,
+  doublePrecision,
   jsonb,
   index,
 } from "drizzle-orm/pg-core";
@@ -121,6 +122,42 @@ export const memberQuality = pgTable("member_quality", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
+
+/**
+ * Per-message content score — the LLM rubric output for a single Slackle
+ * message, used to weight engagement by SUBSTANCE rather than volume.
+ * Keyed by the Slackle `messages.id`. We persist only DERIVED fields
+ * (+ author_email/posted_at for topic-by-member analytics) — raw body_text
+ * never leaves Slackle. Internal-only. Scored incrementally (only unscored
+ * messages) by a batched Haiku job; see src/lib/sync/message-scores.ts.
+ */
+export const messageScores = pgTable(
+  "message_scores",
+  {
+    // Slackle messages.id (UUID). Not an FK — different database.
+    messageId: uuid("message_id").primaryKey(),
+    source: text("source"), // SLACK | CIRCLE
+    // answer | insight | resource | question | discussion | social |
+    // logistics | job_post | networking_intro | noise
+    type: text("type"),
+    substance: integer("substance"), // 0–3
+    onTopic: boolean("on_topic"), // relevant to CISO concerns
+    topics: jsonb("topics").$type<string[]>().default([]),
+    contentWeight: doublePrecision("content_weight"), // 0–10
+    isConnector: boolean("is_connector").notNull().default(false), // job_post | networking_intro
+    authorEmail: text("author_email"),
+    postedAt: timestamp("posted_at", { withTimezone: true }),
+    model: text("model"),
+    scoredAt: timestamp("scored_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    authorIdx: index("message_scores_author_idx").on(t.authorEmail),
+    connectorIdx: index("message_scores_connector_idx").on(t.isConnector),
+  })
+);
+
+export type MessageScore = typeof messageScores.$inferSelect;
+export type NewMessageScore = typeof messageScores.$inferInsert;
 
 export type Member = typeof members.$inferSelect;
 export type NewMember = typeof members.$inferInsert;

@@ -1,4 +1,5 @@
 import { eventflowSql, slackleSql } from "./db";
+import { meqSql } from "./db/meq";
 
 // ─── Tunable config ─────────────────────────────────────────────────────────
 // Weights and decay follow the CISO Community Engagement Ranking framework.
@@ -20,13 +21,16 @@ export const WEIGHTS = {
   spoke: 75, // DEFERRED: no speaker→contact link in EventFlow yet (always 0 today)
 } as const;
 
-/** How the five dimensions roll up into the composite total. Must sum to 1. */
+/** How the dimensions roll up into the composite total. Must sum to 1.
+ * `connector` (community-building: job posts + member intros) is a deliberate
+ * small-weight contributor — it counts, but substantive knowledge dominates. */
 export const DIMENSION_WEIGHTS = {
-  presence: 0.15,
+  presence: 0.13,
   contribution: 0.3,
-  reciprocity: 0.2,
-  reach: 0.15,
+  reciprocity: 0.18,
+  reach: 0.12,
   depth: 0.2,
+  connector: 0.07,
 } as const;
 
 export type Dimension = keyof typeof DIMENSION_WEIGHTS;
@@ -67,6 +71,8 @@ export type SignalCounts = {
   eventsAttended: number;
   noShows: number;
   activeDays: number;
+  connectorActions: number; // job posts + member intros
+  avgSubstance: number; // mean content substance (0–3) across their messages
 };
 
 export type MemberScore = {
@@ -115,6 +121,8 @@ type Acc = {
   signals: SignalCounts;
   activeDays: Map<string, number>; // dayKey → decay factor for that day
   lastActiveMs: number;
+  substanceSum: number; // for avgSubstance
+  substanceCount: number;
 };
 
 // ─── Main entry point ─────────────────────────────────────────────────────────
@@ -134,12 +142,10 @@ export async function computeEngagement(
     const daysAgo = Math.max(0, (nowMs - new Date(d).getTime()) / 86400000);
     return Math.pow(0.5, daysAgo / HALF_LIFE_DAYS);
   };
-  const quality = (chars: number | null) =>
-    Math.min(1 + (chars ?? 0) / 5 / 200, 3); // ~5 chars/word, cap 3×
   const dayKey = (d: Date | string) => new Date(d).toISOString().slice(0, 10);
 
   // Pull everything in parallel. Volumes are small (~5K Slackle rows, ~3K EF).
-  const [contacts, messages, reactionsGiven, reactionsRecv, repliesRecv, attendance] =
+  const [contacts, messages, reactionsGiven, reactionsRecv, repliesRecv, attendance, msgScores] =
     await Promise.all([
       eventflowSql<
         {
@@ -160,6 +166,7 @@ export async function computeEngagement(
 
       slackleSql<
         {
+          id: string;
           email: string | null;
           display_name: string | null;
           source: string;
@@ -167,7 +174,7 @@ export async function computeEngagement(
           posted_at: Date;
           chars: number;
         }[]
-      >`SELECT lower(author_email) AS email, author_display_name AS display_name,
+      >`SELECT id, lower(author_email) AS email, author_display_name AS display_name,
                source, (source_parent_id IS NOT NULL) AS is_reply,
                posted_at, length(body_text) AS chars
         FROM messages
@@ -197,7 +204,26 @@ export async function computeEngagement(
         SELECT a.contact_id, a.status, e.starts_at
         FROM attendees a JOIN events e ON a.event_id = e.id
         WHERE a.status IN ('attended', 'no_show') AND e.starts_at >= ${since}`,
+
+      // Content scores (MEQ DB) — substance-based weight per message.
+      meqSql<
+        { message_id: string; content_weight: number; substance: number; is_connector: boolean }[]
+      >`SELECT message_id, content_weight, substance, is_connector FROM message_scores`,
     ]);
+
+  // message_id → content score (in-memory join; different DB).
+  const scoreById = new Map<string, { weight: number; substance: number; connector: boolean }>();
+  for (const s of msgScores) {
+    scoreById.set(s.message_id, {
+      weight: s.content_weight ?? 0,
+      substance: s.substance ?? 0,
+      connector: !!s.is_connector,
+    });
+  }
+  // Fallback weight for not-yet-scored messages (rollout window / brand-new
+  // messages between daily scoring runs): a modest length proxy on the same
+  // 0–10 scale, so they still count without dominating.
+  const fallbackWeight = (chars: number) => Math.max(0.5, Math.min(5, chars / 60));
 
   // ── Identity: map every EventFlow email → its contact ──
   const emailToContact = new Map<string, ContactIdentity>();
@@ -239,6 +265,8 @@ export async function computeEngagement(
     eventsAttended: 0,
     noShows: 0,
     activeDays: 0,
+    connectorActions: 0,
+    avgSubstance: 0,
   });
 
   function getAccByEmail(email: string | null, displayName: string | null): Acc | null {
@@ -279,10 +307,12 @@ export async function computeEngagement(
       hubspotContactId: hs,
       isMember,
       matched,
-      raw: { presence: 0, contribution: 0, reciprocity: 0, reach: 0, depth: 0 },
+      raw: { presence: 0, contribution: 0, reciprocity: 0, reach: 0, depth: 0, connector: 0 },
       signals: blankSignals(),
       activeDays: new Map(),
       lastActiveMs: 0,
+      substanceSum: 0,
+      substanceCount: 0,
     };
   }
 
@@ -291,21 +321,35 @@ export async function computeEngagement(
     if (ms > acc.lastActiveMs) acc.lastActiveMs = ms;
   };
 
-  // Messages → Contribution (posts) / Reciprocity (replies) + Presence (active days)
+  // Messages → content-weighted Contribution (top-level posts) /
+  // Reciprocity (replies) / Connector (job posts + intros) + Presence.
+  // The per-message `content_weight` (0–10, substance-based) replaces the old
+  // raw post/reply count × length proxy, so "thanks!" ≈ 0 and a detailed
+  // answer scores high. Connector-type messages route to their own dimension.
   for (const m of messages) {
     const acc = getAccByEmail(m.email, m.display_name);
     if (!acc) continue;
-    const dq = decay(m.posted_at) * quality(m.chars);
-    if (m.is_reply) {
-      acc.raw.reciprocity += WEIGHTS.reply * dq;
+    const dec = decay(m.posted_at);
+    const score = scoreById.get(m.id);
+    const weight = score ? score.weight : fallbackWeight(m.chars);
+
+    if (score?.connector) {
+      acc.raw.connector += weight * dec;
+      acc.signals.connectorActions += 1;
+    } else if (m.is_reply) {
+      acc.raw.reciprocity += weight * dec;
       acc.signals.replies += 1;
     } else {
-      acc.raw.contribution += WEIGHTS.post * dq;
+      acc.raw.contribution += weight * dec;
       acc.signals.posts += 1;
+    }
+    // Track substance for the avgSubstance signal (scored messages only).
+    if (score) {
+      acc.substanceSum += score.substance;
+      acc.substanceCount += 1;
     }
     const dk = dayKey(m.posted_at);
     const existing = acc.activeDays.get(dk) ?? 0;
-    const dec = decay(m.posted_at);
     if (dec > existing) acc.activeDays.set(dk, dec);
     touch(acc, m.posted_at);
   }
@@ -357,12 +401,15 @@ export async function computeEngagement(
     }
   }
 
-  // Finalize active-days presence contribution
+  // Finalize active-days presence contribution + avgSubstance
   for (const acc of accs.values()) {
     let presenceDays = 0;
     for (const dec of acc.activeDays.values()) presenceDays += WEIGHTS.activeDay * dec;
     acc.raw.presence += presenceDays;
     acc.signals.activeDays = acc.activeDays.size;
+    acc.signals.avgSubstance = acc.substanceCount
+      ? Math.round((acc.substanceSum / acc.substanceCount) * 100) / 100
+      : 0;
   }
 
   // Keep only members with at least one signal in the window
@@ -374,7 +421,7 @@ export async function computeEngagement(
   });
 
   // ── Normalize each dimension to 0–100 via the 95th-percentile member ──
-  const p95: Record<Dimension, number> = { presence: 0, contribution: 0, reciprocity: 0, reach: 0, depth: 0 };
+  const p95: Record<Dimension, number> = { presence: 0, contribution: 0, reciprocity: 0, reach: 0, depth: 0, connector: 0 };
   for (const dim of DIMENSIONS) {
     const vals = scored.map((a) => a.raw[dim]).filter((v) => v > 0).sort((x, y) => x - y);
     p95[dim] = vals.length ? (vals[Math.floor(0.95 * (vals.length - 1))] || vals[vals.length - 1]) : 0;

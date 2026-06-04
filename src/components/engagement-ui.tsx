@@ -14,6 +14,7 @@ export const DIMENSION_LABEL: Record<Dimension, string> = {
   reciprocity: "Reciprocity",
   reach: "Reach",
   depth: "Depth",
+  connector: "Connector",
 };
 
 export function TierBadge({ tier }: { tier: Tier }) {
