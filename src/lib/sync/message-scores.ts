@@ -10,6 +10,11 @@ const MODEL = process.env.MEQ_SCORING_MODEL || "claude-haiku-4-5-20251001";
 const BATCH_SIZE = 15; // messages per LLM call
 const MAX_CHARS = 1200; // truncate each message body for the prompt
 
+// Claude Haiku 4.5 list pricing (USD per million tokens). Override if rates
+// change. Authoritative spend is always the Anthropic Console bill.
+const PRICE_PER_MTOK_INPUT = Number(process.env.MEQ_PRICE_IN_PER_MTOK ?? 1.0);
+const PRICE_PER_MTOK_OUTPUT = Number(process.env.MEQ_PRICE_OUT_PER_MTOK ?? 5.0);
+
 // Message types the rubric assigns. `job_post` + `networking_intro` are the
 // "connector" types (community-building, not CISO knowledge).
 export const MESSAGE_TYPES = [
@@ -114,7 +119,13 @@ function parseScores(text: string): Record<string, unknown>[] {
   }
 }
 
-async function scoreBatch(batch: RawMessage[]): Promise<NewMessageScore[]> {
+type BatchResult = {
+  rows: NewMessageScore[];
+  inputTokens: number;
+  outputTokens: number;
+};
+
+async function scoreBatch(batch: RawMessage[]): Promise<BatchResult> {
   const listing = batch
     .map((m, i) => {
       const body = m.body_text.length > MAX_CHARS ? m.body_text.slice(0, MAX_CHARS) + "…" : m.body_text;
@@ -134,6 +145,9 @@ async function scoreBatch(batch: RawMessage[]): Promise<NewMessageScore[]> {
       }),
     "haiku.messages.create"
   );
+
+  const inputTokens = resp.usage?.input_tokens ?? 0;
+  const outputTokens = resp.usage?.output_tokens ?? 0;
 
   const text = resp.content
     .filter((b): b is Anthropic.TextBlock => b.type === "text")
@@ -175,7 +189,7 @@ async function scoreBatch(batch: RawMessage[]): Promise<NewMessageScore[]> {
       scoredAt: now,
     });
   }
-  return rows;
+  return { rows, inputTokens, outputTokens };
 }
 
 export type ScoreRunStats = {
@@ -184,6 +198,13 @@ export type ScoreRunStats = {
   scored: number;
   batches: number;
   model: string;
+  // Token + cost accounting for this run.
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+  estCostUsd: number; // rounded to 4 dp
+  costPerMessageUsd: number; // est cost / messages scored
+  pricing: { inputPerMTok: number; outputPerMTok: number };
 };
 
 /**
@@ -218,10 +239,14 @@ export async function scoreMessages(opts: { limit?: number } = {}): Promise<Scor
 
   let scored = 0;
   let batches = 0;
+  let inputTokens = 0;
+  let outputTokens = 0;
   for (let i = 0; i < todo.length; i += BATCH_SIZE) {
     const batch = todo.slice(i, i + BATCH_SIZE);
-    const rows = await scoreBatch(batch);
+    const { rows, inputTokens: inTok, outputTokens: outTok } = await scoreBatch(batch);
     batches++;
+    inputTokens += inTok;
+    outputTokens += outTok;
     if (rows.length) {
       // Upsert (re-score overwrites on re-run).
       await meqDb
@@ -247,11 +272,25 @@ export async function scoreMessages(opts: { limit?: number } = {}): Promise<Scor
     }
   }
 
+  const estCostUsd =
+    (inputTokens / 1_000_000) * PRICE_PER_MTOK_INPUT +
+    (outputTokens / 1_000_000) * PRICE_PER_MTOK_OUTPUT;
+  const round = (n: number, dp: number) => {
+    const f = 10 ** dp;
+    return Math.round(n * f) / f;
+  };
+
   return {
     unscored: messages.filter((m) => !scoredIds.has(m.id) && !isExcluded(m.email, m.display_name)).length,
     attempted: todo.length,
     scored,
     batches,
     model: MODEL,
+    inputTokens,
+    outputTokens,
+    totalTokens: inputTokens + outputTokens,
+    estCostUsd: round(estCostUsd, 4),
+    costPerMessageUsd: scored ? round(estCostUsd / scored, 6) : 0,
+    pricing: { inputPerMTok: PRICE_PER_MTOK_INPUT, outputPerMTok: PRICE_PER_MTOK_OUTPUT },
   };
 }
