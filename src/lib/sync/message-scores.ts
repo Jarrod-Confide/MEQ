@@ -6,7 +6,7 @@ import type { NewMessageScore } from "../db/schema";
 
 // ─── Config ───────────────────────────────────────────────────────────────
 // Haiku is plenty for this rubric; override with MEQ_SCORING_MODEL if needed.
-const MODEL = process.env.MEQ_SCORING_MODEL || "claude-3-5-haiku-latest";
+const MODEL = process.env.MEQ_SCORING_MODEL || "claude-haiku-4-5-20251001";
 const BATCH_SIZE = 15; // messages per LLM call
 const MAX_CHARS = 1200; // truncate each message body for the prompt
 
