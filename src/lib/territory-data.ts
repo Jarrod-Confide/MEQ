@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import { meqSql } from "./db/meq";
 import { territoryFromCity, type Territory } from "./territory";
 import { TERRITORY_GOALS, type GoalKey } from "./goals";
@@ -177,4 +178,12 @@ export async function fetchTerritory(territory: Territory): Promise<TerritoryDat
     movedDown,
     goals,
   };
+}
+
+/** Cached wrapper (5 min) — keeps rapid territory navigation off the DB. */
+export function getTerritory(territory: Territory): Promise<TerritoryData> {
+  return unstable_cache(() => fetchTerritory(territory), ["territory", territory], {
+    revalidate: 300,
+    tags: ["snapshots"],
+  })();
 }

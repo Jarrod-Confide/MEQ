@@ -1,4 +1,4 @@
-import { fetchOutreach } from "@/lib/outreach";
+import { getOutreach } from "@/lib/outreach";
 import { OutreachLists } from "@/components/OutreachLists";
 import { Nav } from "@/components/Nav";
 
@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 export default async function OutreachPage() {
-  const data = await fetchOutreach("ALL");
+  const data = await getOutreach("ALL");
   const totalContacts = data.segments.reduce((s, seg) => s + seg.rows.length, 0);
 
   return (

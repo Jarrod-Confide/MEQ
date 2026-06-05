@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Nav } from "@/components/Nav";
-import { fetchTerritory } from "@/lib/territory-data";
-import { fetchOutreach } from "@/lib/outreach";
+import { getTerritory } from "@/lib/territory-data";
+import { getOutreach } from "@/lib/outreach";
 import { TERRITORIES, TERRITORY_LABEL, type Territory } from "@/lib/territory";
 import { GOAL_DEFS } from "@/lib/goals";
 import { LineChart, StackedAreaChart, ChartLegend } from "@/components/charts";
@@ -16,7 +16,7 @@ export default async function TerritoryPage({ searchParams }: { searchParams: Pr
   const { t } = await searchParams;
   const territory: Territory = (TERRITORIES as readonly string[]).includes(t ?? "") ? (t as Territory) : "NE";
 
-  const [data, outreach] = await Promise.all([fetchTerritory(territory), fetchOutreach(territory)]);
+  const [data, outreach] = await Promise.all([getTerritory(territory), getOutreach(territory)]);
 
   return (
     <div className="min-h-screen">

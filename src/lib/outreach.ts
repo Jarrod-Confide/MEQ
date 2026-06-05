@@ -1,5 +1,14 @@
+import { unstable_cache } from "next/cache";
 import { meqSql } from "./db/meq";
 import { type Territory } from "./territory";
+
+/** Safe ISO — returns null for missing / out-of-range dates (postgres
+ * 'infinity' or year > 275760 would otherwise throw "Invalid time value"). */
+function safeIso(d: Date | string | null | undefined): string | null {
+  if (!d) return null;
+  const t = new Date(d);
+  return isNaN(t.getTime()) ? null : t.toISOString();
+}
 
 export type OutreachRow = {
   memberId: string | null;
@@ -86,7 +95,7 @@ export async function fetchOutreach(territory: Territory | "ALL" = "ALL"): Promi
     WHERE s.week_start = (SELECT w FROM latest)
   `;
 
-  const week = rows.length ? new Date(rows[0].week_start).toISOString() : null;
+  const week = rows.length ? safeIso(rows[0].week_start) : null;
   const nowMs = Date.now();
 
   const mapped: OutreachRow[] = rows
@@ -109,7 +118,7 @@ export async function fetchOutreach(territory: Territory | "ALL" = "ALL"): Promi
         engagementTier: r.tier,
         priorScore: r.prior_total != null ? Math.round(r.prior_total * 10) / 10 : null,
         deltaScore: delta,
-        joinedAt: r.joined_at ? new Date(r.joined_at).toISOString() : null,
+        joinedAt: safeIso(r.joined_at),
         eventsDim: Math.round(dims.events ?? 0),
         connectorDim: Math.round(dims.connector ?? 0),
         reason: "",
@@ -199,4 +208,12 @@ export async function fetchOutreach(territory: Territory | "ALL" = "ALL"): Promi
   for (const s of segments) counts[s.key] = s.rows.length;
 
   return { segments, week, territory, counts };
+}
+
+/** Cached wrapper (5 min) — keeps rapid territory navigation off the DB. */
+export function getOutreach(territory: Territory | "ALL" = "ALL"): Promise<OutreachData> {
+  return unstable_cache(() => fetchOutreach(territory), ["outreach", territory], {
+    revalidate: 300,
+    tags: ["snapshots"],
+  })();
 }
