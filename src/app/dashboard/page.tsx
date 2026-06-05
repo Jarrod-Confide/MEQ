@@ -1,18 +1,12 @@
-import Link from "next/link";
 import { fetchDashboard } from "@/lib/dashboard-data";
 import { QUALITY_TIER_ORDER, TIER_COLOR as QUALITY_TIER_COLOR } from "@/lib/quality-tiers";
 import { TIER_COLOR as ENGAGEMENT_TIER_COLOR } from "@/components/engagement-ui";
 import { TIERS } from "@/lib/engagement";
+import { Nav } from "@/components/Nav";
+import { LineChart, ChartLegend } from "@/components/charts";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 300;
-
-const NAV = [
-  { href: "/", label: "Map" },
-  { href: "/dashboard", label: "Dashboard", current: true },
-  { href: "/engagement", label: "Engagement" },
-  { href: "/quality", label: "Quality" },
-];
 
 export default async function DashboardPage() {
   const d = await fetchDashboard();
@@ -39,21 +33,7 @@ export default async function DashboardPage() {
           </div>
           <h1 className="m-0 text-xl font-semibold">Membership Dashboard</h1>
         </div>
-        <nav className="flex gap-1">
-          {NAV.map((n) => (
-            <Link
-              key={n.href}
-              href={n.href}
-              className={
-                n.current
-                  ? "rounded-md border border-[#2d3d5c] bg-[#1a2238] px-3 py-1.5 text-[13px] text-white"
-                  : "rounded-md px-3 py-1.5 text-[13px] text-[#9bb0d4] hover:bg-[#1a2238] hover:text-white"
-              }
-            >
-              {n.label}
-            </Link>
-          ))}
-        </nav>
+        <Nav current="/dashboard" />
         <div className="text-[11px] text-[#6a7da0]">
           {d.syncedAt ? `synced ${new Date(d.syncedAt).toLocaleString()}` : "—"}
         </div>
@@ -103,6 +83,40 @@ export default async function DashboardPage() {
             })}
           </div>
         </section>
+
+        {/* Engagement trend (from weekly snapshots) */}
+        {d.engagementTrend.length > 1 && (
+          <section className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+            <div className="rounded-lg border border-[#1f2a3d] bg-[#111726] p-5">
+              <div className="mb-3 flex items-baseline justify-between">
+                <h2 className="m-0 text-[13px] uppercase tracking-wide text-[#9bb0d4]">
+                  Scored members & Active+ over time
+                </h2>
+                <span className="text-[11px] text-[#6a7da0]">weekly</span>
+              </div>
+              <LineChart
+                labels={d.engagementTrend.map((p) => p.week.slice(5))}
+                series={[
+                  { label: "Scored", color: "#8ab4ff", points: d.engagementTrend.map((p) => p.scored) },
+                  { label: "Active+", color: "#22c55e", points: d.engagementTrend.map((p) => p.activePlus) },
+                ]}
+              />
+              <ChartLegend items={[{ label: "Scored members", color: "#8ab4ff" }, { label: "Active+ (Champion+Active)", color: "#22c55e" }]} />
+            </div>
+            <div className="rounded-lg border border-[#1f2a3d] bg-[#111726] p-5">
+              <div className="mb-3 flex items-baseline justify-between">
+                <h2 className="m-0 text-[13px] uppercase tracking-wide text-[#9bb0d4]">
+                  Average engagement over time
+                </h2>
+                <span className="text-[11px] text-[#6a7da0]">weekly</span>
+              </div>
+              <LineChart
+                labels={d.engagementTrend.map((p) => p.week.slice(5))}
+                series={[{ label: "Avg", color: "#a78bfa", points: d.engagementTrend.map((p) => p.avgTotal) }]}
+              />
+            </div>
+          </section>
+        )}
 
         {/* Tier mixes */}
         <section className="grid grid-cols-1 gap-3 lg:grid-cols-2">

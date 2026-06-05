@@ -23,6 +23,7 @@ export type DashboardData = {
   cLevelCount: number;
   reportsToCeoCount: number;
   eventAttendees30d: number;
+  engagementTrend: { week: string; scored: number; activePlus: number; avgTotal: number }[];
   syncedAt: string | null;
 };
 
@@ -35,6 +36,7 @@ export async function fetchDashboard(): Promise<DashboardData> {
     companies,
     composition,
     eventAttendees,
+    trend,
     eng90,
     eng30,
   ] = await Promise.all([
@@ -105,11 +107,26 @@ export async function fetchDashboard(): Promise<DashboardData> {
       FROM attendees a JOIN events e ON a.event_id = e.id
       WHERE a.status = 'attended' AND e.starts_at >= NOW() - INTERVAL '30 days'
     `,
+    meqSql<{ week_start: Date; scored: number; active_plus: number; avg_total: number }[]>`
+      SELECT week_start,
+             COUNT(*)::int scored,
+             COUNT(*) FILTER (WHERE tier IN ('Champion','Active'))::int active_plus,
+             ROUND(AVG(total)::numeric, 1)::float avg_total
+      FROM member_engagement_snapshots
+      GROUP BY week_start ORDER BY week_start
+    `,
     getEngagement(90),
     getEngagement(30),
   ]);
 
   const c = counts[0];
+
+  const engagementTrend = trend.map((r) => ({
+    week: new Date(r.week_start).toISOString().slice(0, 10),
+    scored: r.scored,
+    activePlus: r.active_plus,
+    avgTotal: r.avg_total ?? 0,
+  }));
 
   // Fill a complete 12-month series (zero-fill empty months).
   const monthlyJoins: { month: string; count: number }[] = [];
@@ -155,6 +172,7 @@ export async function fetchDashboard(): Promise<DashboardData> {
     cLevelCount: composition[0].c_level,
     reportsToCeoCount: composition[0].ceo,
     eventAttendees30d: eventAttendees[0].n,
+    engagementTrend,
     syncedAt: c.synced_at ? new Date(c.synced_at).toISOString() : null,
   };
 }

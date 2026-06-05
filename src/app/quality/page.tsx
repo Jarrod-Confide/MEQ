@@ -1,8 +1,8 @@
-import Link from "next/link";
 import { fetchQuality } from "@/lib/quality-data";
 import { QUALITY_TIER_ORDER, TIER_COLOR } from "@/lib/quality-tiers";
 import { QualityTable } from "@/components/QualityTable";
 import { getEngagement } from "@/lib/engagement-cache";
+import { Nav } from "@/components/Nav";
 
 export const dynamic = "force-dynamic";
 
@@ -44,20 +44,7 @@ export default async function QualityPage() {
           </div>
           <h1 className="m-0 text-xl font-semibold">Member Quality</h1>
         </div>
-        <nav className="flex gap-1">
-          <Link href="/" className="rounded-md px-3 py-1.5 text-[13px] text-[#9bb0d4] hover:bg-[#1a2238] hover:text-white">
-            Map
-          </Link>
-          <Link href="/dashboard" className="rounded-md px-3 py-1.5 text-[13px] text-[#9bb0d4] hover:bg-[#1a2238] hover:text-white">
-            Dashboard
-          </Link>
-          <Link href="/engagement" className="rounded-md px-3 py-1.5 text-[13px] text-[#9bb0d4] hover:bg-[#1a2238] hover:text-white">
-            Engagement
-          </Link>
-          <Link href="/quality" className="rounded-md border border-[#2d3d5c] bg-[#1a2238] px-3 py-1.5 text-[13px] text-white">
-            Quality
-          </Link>
-        </nav>
+        <Nav current="/quality" />
         <div className="text-[11px] text-[#6a7da0]">
           {data.syncedAt ? `synced ${new Date(data.syncedAt).toLocaleString()}` : "not yet synced"}
         </div>

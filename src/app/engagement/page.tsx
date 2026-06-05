@@ -5,6 +5,7 @@ import { EngagementTable } from "@/components/EngagementTable";
 import { RefreshButton } from "@/components/RefreshButton";
 import { TIER_COLOR } from "@/components/engagement-ui";
 import { fetchQualityByEventflowId } from "@/lib/quality-data";
+import { Nav } from "@/components/Nav";
 
 export const dynamic = "force-dynamic";
 
@@ -40,32 +41,7 @@ export default async function EngagementPage({
           </div>
           <h1 className="m-0 text-xl font-semibold">Engagement Leaderboard</h1>
         </div>
-        <nav className="flex gap-1">
-          <Link
-            href="/"
-            className="rounded-md px-3 py-1.5 text-[13px] text-[#9bb0d4] hover:bg-[#1a2238] hover:text-white"
-          >
-            Map
-          </Link>
-          <Link
-            href="/dashboard"
-            className="rounded-md px-3 py-1.5 text-[13px] text-[#9bb0d4] hover:bg-[#1a2238] hover:text-white"
-          >
-            Dashboard
-          </Link>
-          <Link
-            href="/engagement"
-            className="rounded-md border border-[#2d3d5c] bg-[#1a2238] px-3 py-1.5 text-[13px] text-white"
-          >
-            Engagement
-          </Link>
-          <Link
-            href="/quality"
-            className="rounded-md px-3 py-1.5 text-[13px] text-[#9bb0d4] hover:bg-[#1a2238] hover:text-white"
-          >
-            Quality
-          </Link>
-        </nav>
+        <Nav current="/engagement" />
         <RefreshButton computedAt={data.computedAt} />
       </header>
 

@@ -1,6 +1,7 @@
 import { fetchMemberMap } from "@/lib/members";
 import { MemberBubbleMap } from "@/components/MemberBubbleMap";
 import { CityList } from "@/components/CityList";
+import { Nav } from "@/components/Nav";
 
 export const revalidate = 300; // refresh every 5 min
 
@@ -22,38 +23,7 @@ export default async function MemberMapPage() {
           </div>
           <h1 className="m-0 text-xl font-semibold">Global Member Map</h1>
         </div>
-        <nav className="flex gap-1">
-          <a
-            href="/"
-            className="rounded-md border border-[#2d3d5c] bg-[#1a2238] px-3 py-1.5 text-[13px] text-white"
-          >
-            Map
-          </a>
-          <a
-            href="/dashboard"
-            className="rounded-md px-3 py-1.5 text-[13px] text-[#9bb0d4] hover:bg-[#1a2238] hover:text-white"
-          >
-            Dashboard
-          </a>
-          <a
-            href="/engagement"
-            className="rounded-md px-3 py-1.5 text-[13px] text-[#9bb0d4] hover:bg-[#1a2238] hover:text-white"
-          >
-            Engagement
-          </a>
-          <a
-            href="/quality"
-            className="rounded-md px-3 py-1.5 text-[13px] text-[#9bb0d4] hover:bg-[#1a2238] hover:text-white"
-          >
-            Quality
-          </a>
-          <a
-            href="/admin/unmatched"
-            className="rounded-md px-3 py-1.5 text-[13px] text-[#9bb0d4] hover:bg-[#1a2238] hover:text-white"
-          >
-            Unmatched
-          </a>
-        </nav>
+        <Nav current="/" />
         <div className="flex flex-wrap gap-6 text-[13px]">
           <span>
             <b className="mr-1 text-base text-[#8ab4ff]">
