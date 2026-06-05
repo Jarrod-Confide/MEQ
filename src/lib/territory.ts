@@ -26,6 +26,14 @@ export const TERRITORY_LABEL: Record<Territory, string> = {
 
 export const TERRITORY_ORDER: Territory[] = ["NE", "SE", "NW", "SW", "INTL"];
 
+export const TERRITORY_COLOR: Record<Territory, string> = {
+  NE: "#8ab4ff",
+  SE: "#22c55e",
+  NW: "#a78bfa",
+  SW: "#facc15",
+  INTL: "#6a7da0",
+};
+
 /** Assign a quadrant from coordinates + country. Non-NA → INTL. */
 export function territoryFromCoords(
   lat: number,

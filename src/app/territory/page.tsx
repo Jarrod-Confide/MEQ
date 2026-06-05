@@ -26,7 +26,12 @@ export default async function TerritoryPage({ searchParams }: { searchParams: Pr
           <h1 className="m-0 text-xl font-semibold">Territory · {TERRITORY_LABEL[territory]}</h1>
         </div>
         <Nav current="/territory" />
-        <div className="text-[11px] text-[#6a7da0]">{data.week ? `week of ${new Date(data.week).toLocaleDateString()}` : "no data"}</div>
+        <div className="flex items-center gap-3">
+          <Link href="/territory/map" className="rounded-md border border-[#2d3d5c] px-3 py-1.5 text-[12px] text-[#8ab4ff] hover:bg-[#1a2238]">
+            🗺 Territory map
+          </Link>
+          <span className="text-[11px] text-[#6a7da0]">{data.week ? `week of ${new Date(data.week).toLocaleDateString()}` : "no data"}</span>
+        </div>
       </header>
 
       <main className="px-6 py-5 space-y-6">
