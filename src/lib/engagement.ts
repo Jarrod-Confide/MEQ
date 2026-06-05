@@ -136,9 +136,12 @@ type Acc = {
 // ─── Main entry point ─────────────────────────────────────────────────────────
 
 export async function computeEngagement(
-  opts: { sinceDays?: number } = {}
+  opts: { sinceDays?: number; asOf?: Date } = {}
 ): Promise<EngagementResult> {
-  const until = new Date();
+  // `asOf` anchors the computation to a past point in time (decay + window +
+  // an upper bound on signals) so we can reconstruct the leaderboard as it
+  // would have looked on that date — powering retroactive trend charts.
+  const until = opts.asOf ?? new Date();
   const sinceDays = opts.sinceDays ?? 90;
   const since =
     sinceDays >= 9999
@@ -186,16 +189,16 @@ export async function computeEngagement(
                source, (source_parent_id IS NOT NULL) AS is_reply,
                posted_at, length(body_text) AS chars
         FROM messages
-        WHERE deleted_at IS NULL AND posted_at >= ${since}`,
+        WHERE deleted_at IS NULL AND posted_at >= ${since} AND posted_at <= ${until}`,
 
       slackleSql<{ email: string | null; display_name: string | null; created_at: Date }[]>`
         SELECT lower(reactor_email) AS email, reactor_display_name AS display_name, created_at
-        FROM reactions WHERE removed_at IS NULL AND created_at >= ${since}`,
+        FROM reactions WHERE removed_at IS NULL AND created_at >= ${since} AND created_at <= ${until}`,
 
       slackleSql<{ email: string | null; display_name: string | null; created_at: Date }[]>`
         SELECT lower(m.author_email) AS email, m.author_display_name AS display_name, r.created_at
         FROM reactions r JOIN messages m ON r.message_id = m.id
-        WHERE r.removed_at IS NULL AND m.deleted_at IS NULL AND r.created_at >= ${since}`,
+        WHERE r.removed_at IS NULL AND m.deleted_at IS NULL AND r.created_at >= ${since} AND r.created_at <= ${until}`,
 
       slackleSql<{ email: string | null; display_name: string | null; posted_at: Date }[]>`
         SELECT lower(parent.author_email) AS email, parent.author_display_name AS display_name,
@@ -205,13 +208,13 @@ export async function computeEngagement(
           ON reply.source_parent_id = parent.source_id AND reply.source = parent.source
         WHERE reply.source_parent_id IS NOT NULL
           AND reply.deleted_at IS NULL AND parent.deleted_at IS NULL
-          AND reply.posted_at >= ${since}
+          AND reply.posted_at >= ${since} AND reply.posted_at <= ${until}
           AND reply.author_email IS DISTINCT FROM parent.author_email`,
 
       eventflowSql<{ contact_id: string; status: string; starts_at: Date }[]>`
         SELECT a.contact_id, a.status, e.starts_at
         FROM attendees a JOIN events e ON a.event_id = e.id
-        WHERE a.status IN ('attended', 'no_show') AND e.starts_at >= ${since}`,
+        WHERE a.status IN ('attended', 'no_show') AND e.starts_at >= ${since} AND e.starts_at <= ${until}`,
 
       // Content scores (MEQ DB) — substance-based weight per message.
       meqSql<

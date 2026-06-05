@@ -8,6 +8,7 @@ import {
   doublePrecision,
   jsonb,
   index,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 
 /**
@@ -158,6 +159,43 @@ export const messageScores = pgTable(
 
 export type MessageScore = typeof messageScores.$inferSelect;
 export type NewMessageScore = typeof messageScores.$inferInsert;
+
+/**
+ * Weekly point-in-time snapshot of each scored member's engagement (+ quality
+ * + territory). MEQ computes engagement live, so without this there's no
+ * history for trend charts or goal progress. Written weekly by a cron, and
+ * backfilled retroactively via computeEngagement({asOf}). One row per member
+ * per week (weekStart = Monday 00:00 UTC).
+ */
+export const memberEngagementSnapshots = pgTable(
+  "member_engagement_snapshots",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    weekStart: timestamp("week_start", { withTimezone: true }).notNull(),
+    memberKey: text("member_key").notNull(), // engagement key: c:/e:/dn:
+    eventflowContactId: uuid("eventflow_contact_id"),
+    memberId: uuid("member_id"), // MEQ members.id when matched
+    name: text("name"),
+    isMember: boolean("is_member").notNull().default(false),
+    matched: boolean("matched").notNull().default(false),
+    territory: text("territory"), // NE | SE | NW | SW | INTL
+    total: doublePrecision("total"),
+    tier: text("tier"),
+    dimensions: jsonb("dimensions").$type<Record<string, number>>().default({}),
+    qualityScore: integer("quality_score"),
+    qualityTier: text("quality_tier"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    weekIdx: index("snapshots_week_idx").on(t.weekStart),
+    territoryIdx: index("snapshots_territory_idx").on(t.territory),
+    memberIdx: index("snapshots_member_idx").on(t.memberId),
+    weekKeyUniq: uniqueIndex("snapshots_week_key_uniq").on(t.weekStart, t.memberKey),
+  })
+);
+
+export type MemberEngagementSnapshot = typeof memberEngagementSnapshots.$inferSelect;
+export type NewMemberEngagementSnapshot = typeof memberEngagementSnapshots.$inferInsert;
 
 export type Member = typeof members.$inferSelect;
 export type NewMember = typeof members.$inferInsert;

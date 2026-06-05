@@ -43,6 +43,13 @@
       "when": 1780586085728,
       "tag": "0005_wakeful_tigra",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1780700608270,
+      "tag": "0006_warm_ghost_rider",
+      "breakpoints": true
     }
   ]
 }
