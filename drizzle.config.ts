@@ -1,4 +1,8 @@
 import type { Config } from "drizzle-kit";
+import { loadEnvLocal } from "./scripts/load-env";
+
+// Load .env.local so `drizzle-kit` works without manually exporting URLs.
+loadEnvLocal();
 
 // Migrations run against the session pooler (port 5432) via MEQ_DIRECT_URL;
 // falls back to MEQ_DATABASE_URL if the direct URL isn't set.
