@@ -98,6 +98,8 @@ export type MemberScore = {
   // Decorated server-side from MEQ's member_quality (cross-pollination).
   qualityScore?: number | null;
   qualityTier?: string | null;
+  // Decorated server-side: country flag emoji from closest major city.
+  flag?: string | null;
 };
 
 export type EngagementResult = {

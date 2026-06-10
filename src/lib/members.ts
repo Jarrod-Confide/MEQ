@@ -1,7 +1,26 @@
 import { eq, isNotNull } from "drizzle-orm";
 import { meqDb, schema } from "./db/meq";
-import { CITY_GEO, type GeoCity } from "./cities";
+import { CITY_GEO, flagForCity, type GeoCity } from "./cities";
 import { getEngagement } from "./engagement-cache";
+
+/**
+ * Map of EventFlow contact id → country flag emoji (from closest major city).
+ * Matches the engagement scorer's `c:<eventflow_contact_id>` keys so the
+ * leaderboard can show where each member is from.
+ */
+export async function fetchFlagByEventflowId(): Promise<Map<string, string>> {
+  const rows = await meqDb
+    .select({ ef: schema.members.eventflowContactId, city: schema.members.closestMajorCity })
+    .from(schema.members)
+    .where(isNotNull(schema.members.eventflowContactId));
+  const m = new Map<string, string>();
+  for (const r of rows) {
+    if (!r.ef) continue;
+    const flag = flagForCity(r.city);
+    if (flag) m.set(r.ef, flag);
+  }
+  return m;
+}
 
 export type CityPoint = GeoCity & {
   members: number;

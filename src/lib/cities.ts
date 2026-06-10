@@ -139,3 +139,18 @@ export const CITY_GEO: Record<string, GeoCity> = Object.fromEntries(
     { name, lat, lng, country, state } as GeoCity,
   ])
 );
+
+/** ISO 3166-1 alpha-2 country code → flag emoji (regional indicators). */
+export function flagEmoji(country: string | null | undefined): string | null {
+  if (!country) return null;
+  const cc = country.toUpperCase();
+  if (!/^[A-Z]{2}$/.test(cc)) return null;
+  return String.fromCodePoint(...[...cc].map((c) => 0x1f1e6 + c.charCodeAt(0) - 65));
+}
+
+/** Closest-major-city name → flag emoji of its country (via CITY_GEO). */
+export function flagForCity(city: string | null | undefined): string | null {
+  if (!city) return null;
+  const geo = CITY_GEO[city];
+  return geo ? flagEmoji(geo.country) : null;
+}

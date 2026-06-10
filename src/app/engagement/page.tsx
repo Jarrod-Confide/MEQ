@@ -5,6 +5,7 @@ import { EngagementTable } from "@/components/EngagementTable";
 import { RefreshButton } from "@/components/RefreshButton";
 import { TIER_COLOR } from "@/components/engagement-ui";
 import { fetchQualityByEventflowId } from "@/lib/quality-data";
+import { fetchFlagByEventflowId } from "@/lib/members";
 import { Nav } from "@/components/Nav";
 import { AlgorithmInfo } from "@/components/AlgorithmInfo";
 
@@ -19,16 +20,23 @@ export default async function EngagementPage({
   const days = WINDOWS.some((w) => String(w.days) === daysParam)
     ? Number(daysParam)
     : 90;
-  const [data, qualityByEf] = await Promise.all([
+  const [data, qualityByEf, flagByEf] = await Promise.all([
     getEngagement(days),
     fetchQualityByEventflowId(),
+    fetchFlagByEventflowId(),
   ]);
 
-  // Decorate each member with their quality (when matched to an EventFlow contact).
+  // Decorate each member with quality + country flag (when matched to a contact).
   const enrichedMembers = data.members.map((m) => {
     if (m.key.startsWith("c:")) {
-      const q = qualityByEf.get(m.key.slice(2));
-      return { ...m, qualityScore: q?.score ?? null, qualityTier: q?.tier ?? null };
+      const ef = m.key.slice(2);
+      const q = qualityByEf.get(ef);
+      return {
+        ...m,
+        qualityScore: q?.score ?? null,
+        qualityTier: q?.tier ?? null,
+        flag: flagByEf.get(ef) ?? null,
+      };
     }
     return m;
   });
