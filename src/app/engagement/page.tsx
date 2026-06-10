@@ -6,6 +6,7 @@ import { RefreshButton } from "@/components/RefreshButton";
 import { TIER_COLOR } from "@/components/engagement-ui";
 import { fetchQualityByEventflowId } from "@/lib/quality-data";
 import { Nav } from "@/components/Nav";
+import { AlgorithmInfo } from "@/components/AlgorithmInfo";
 
 export const dynamic = "force-dynamic";
 
@@ -96,6 +97,8 @@ export default async function EngagementPage({
           single great post). Connector = job posts + member intros. 90-day
           decay half-life; dimensions normalized to the 95th-percentile member.
         </p>
+
+        <AlgorithmInfo />
 
         <EngagementTable members={enrichedMembers} />
       </main>
