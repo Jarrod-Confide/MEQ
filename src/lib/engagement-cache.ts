@@ -12,7 +12,7 @@ export const ENGAGEMENT_TAG = "engagement";
  * 7 dimensions incl. `events` + Depth-as-substance, signals add avgSubstance/
  * connectorActions.)
  */
-export const ENGAGEMENT_CACHE_VERSION = "v2-events-2026-06-05";
+export const ENGAGEMENT_CACHE_VERSION = "v2-events-2026-06-17-safedate";
 
 /**
  * Cached wrapper around computeEngagement. Keyed by version + window length,

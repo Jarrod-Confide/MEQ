@@ -1,5 +1,6 @@
 import { eventflowSql, slackleSql } from "./db";
 import { meqSql } from "./db/meq";
+import { safeIso } from "./safe-date";
 
 // ─── Tunable config ─────────────────────────────────────────────────────────
 // Weights and decay follow the CISO Community Engagement Ranking framework.
@@ -155,7 +156,14 @@ export async function computeEngagement(
     const daysAgo = Math.max(0, (nowMs - new Date(d).getTime()) / 86400000);
     return Math.pow(0.5, daysAgo / HALF_LIFE_DAYS);
   };
-  const dayKey = (d: Date | string) => new Date(d).toISOString().slice(0, 10);
+  // null for invalid/out-of-range dates so a single bad timestamp can't throw
+  // "Invalid time value" and 500 every page that reads the leaderboard.
+  const dayKey = (d: Date | string): string | null => {
+    const t = new Date(d);
+    return isNaN(t.getTime()) ? null : t.toISOString().slice(0, 10);
+  };
+  const validDate = (d: Date | string | null | undefined) =>
+    d != null && !isNaN(new Date(d).getTime());
 
   // Pull everything in parallel. Volumes are small (~5K Slackle rows, ~3K EF).
   const [contacts, messages, reactionsGiven, reactionsRecv, repliesRecv, attendance, msgScores] =
@@ -342,6 +350,7 @@ export async function computeEngagement(
   for (const m of messages) {
     const acc = getAccByEmail(m.email, m.display_name);
     if (!acc) continue;
+    if (!validDate(m.posted_at)) continue; // skip bad timestamps (would NaN/throw)
     const dec = decay(m.posted_at);
     const score = scoreById.get(m.id);
     const weight = score ? score.weight : fallbackWeight(m.chars);
@@ -362,15 +371,17 @@ export async function computeEngagement(
       acc.substanceCount += 1;
     }
     const dk = dayKey(m.posted_at);
-    const existing = acc.activeDays.get(dk) ?? 0;
-    if (dec > existing) acc.activeDays.set(dk, dec);
+    if (dk) {
+      const existing = acc.activeDays.get(dk) ?? 0;
+      if (dec > existing) acc.activeDays.set(dk, dec);
+    }
     touch(acc, m.posted_at);
   }
 
   // Reactions given → Reciprocity
   for (const r of reactionsGiven) {
     const acc = getAccByEmail(r.email, r.display_name);
-    if (!acc) continue;
+    if (!acc || !validDate(r.created_at)) continue;
     acc.raw.reciprocity += WEIGHTS.reactionGiven * decay(r.created_at);
     acc.signals.reactionsGiven += 1;
     touch(acc, r.created_at);
@@ -379,7 +390,7 @@ export async function computeEngagement(
   // Reactions received → Reach
   for (const r of reactionsRecv) {
     const acc = getAccByEmail(r.email, r.display_name);
-    if (!acc) continue;
+    if (!acc || !validDate(r.created_at)) continue;
     acc.raw.reach += WEIGHTS.reactionReceived * decay(r.created_at);
     acc.signals.reactionsReceived += 1;
   }
@@ -387,7 +398,7 @@ export async function computeEngagement(
   // Replies received → Reach
   for (const r of repliesRecv) {
     const acc = getAccByEmail(r.email, r.display_name);
-    if (!acc) continue;
+    if (!acc || !validDate(r.posted_at)) continue;
     acc.raw.reach += WEIGHTS.replyReceived * decay(r.posted_at);
     acc.signals.repliesReceived += 1;
   }
@@ -395,7 +406,7 @@ export async function computeEngagement(
   // Event attendance → Depth + Presence
   for (const a of attendance) {
     const contact = contactById.get(a.contact_id);
-    if (!contact) continue;
+    if (!contact || !validDate(a.starts_at)) continue;
     const key = `c:${contact.id}`;
     let acc = accs.get(key);
     if (!acc) {
@@ -460,7 +471,7 @@ export async function computeEngagement(
       total: Math.round(total * 10) / 10,
       tier: "Dormant" as Tier, // assigned below
       signals: a.signals,
-      lastActiveAt: a.lastActiveMs ? new Date(a.lastActiveMs).toISOString() : null,
+      lastActiveAt: a.lastActiveMs ? safeIso(a.lastActiveMs) : null,
     };
   });
 

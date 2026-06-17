@@ -1,6 +1,7 @@
 import { desc, eq, isNotNull } from "drizzle-orm";
 import { meqDb, schema } from "./db/meq";
 import { QUALITY_TIER_ORDER } from "./quality-tiers";
+import { safeIso } from "./safe-date";
 
 export { QUALITY_TIER_ORDER };
 
@@ -136,6 +137,6 @@ export async function fetchQuality(): Promise<QualityData> {
       cLevel: mapped.filter((r) => has(r, "c_level")).length,
     },
     tierCounts,
-    syncedAt: rows[0]?.syncedAt ? new Date(rows[0].syncedAt).toISOString() : null,
+    syncedAt: safeIso(rows[0]?.syncedAt),
   };
 }

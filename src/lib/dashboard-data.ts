@@ -1,5 +1,6 @@
 import { meqSql } from "./db/meq";
 import { eventflowSql } from "./db";
+import { safeIso } from "./safe-date";
 import { getEngagement } from "./engagement-cache";
 import { TIERS } from "./engagement";
 import { QUALITY_TIER_ORDER } from "./quality-tiers";
@@ -122,7 +123,7 @@ export async function fetchDashboard(): Promise<DashboardData> {
   const c = counts[0];
 
   const engagementTrend = trend.map((r) => ({
-    week: new Date(r.week_start).toISOString().slice(0, 10),
+    week: (safeIso(r.week_start) ?? "").slice(0, 10),
     scored: r.scored,
     activePlus: r.active_plus,
     avgTotal: r.avg_total ?? 0,
@@ -173,6 +174,6 @@ export async function fetchDashboard(): Promise<DashboardData> {
     reportsToCeoCount: composition[0].ceo,
     eventAttendees30d: eventAttendees[0].n,
     engagementTrend,
-    syncedAt: c.synced_at ? new Date(c.synced_at).toISOString() : null,
+    syncedAt: safeIso(c.synced_at),
   };
 }
