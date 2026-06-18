@@ -146,6 +146,10 @@ export async function fetchDashboard(): Promise<DashboardData> {
 
   const engagementTierCounts: Record<string, number> = {};
   for (const t of TIERS) engagementTierCounts[t] = eng90.tierCounts[t] ?? 0;
+  // Fold the silent majority (members with no activity, absent from the
+  // scorer) into Dormant so the mix spans the FULL membership, not just active.
+  const activeSum = Object.values(engagementTierCounts).reduce((s, n) => s + n, 0);
+  engagementTierCounts.Dormant = (engagementTierCounts.Dormant ?? 0) + Math.max(0, c.total - activeSum);
 
   const trend30dPct =
     c.prior_30d > 0

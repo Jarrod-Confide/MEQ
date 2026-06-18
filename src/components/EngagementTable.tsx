@@ -22,11 +22,15 @@ export function EngagementTable({ members }: { members: MemberScore[] }) {
   const [sort, setSort] = useState<SortKey>("total");
   const [asc, setAsc] = useState(false);
   const [q, setQ] = useState("");
+  const [hideInactive, setHideInactive] = useState(false);
+
+  const inactiveCount = useMemo(() => members.filter((m) => m.total <= 0).length, [members]);
 
   const rows = useMemo(() => {
-    const filtered = q.trim()
-      ? members.filter((m) => m.name.toLowerCase().includes(q.toLowerCase()))
-      : members;
+    let filtered = hideInactive ? members.filter((m) => m.total > 0) : members;
+    filtered = q.trim()
+      ? filtered.filter((m) => m.name.toLowerCase().includes(q.toLowerCase()))
+      : filtered;
     const dir = asc ? 1 : -1;
     const sorted = [...filtered].sort((a, b) => {
       if (sort === "name") {
@@ -65,12 +69,20 @@ export function EngagementTable({ members }: { members: MemberScore[] }) {
 
   return (
     <div>
-      <input
-        value={q}
-        onChange={(e) => setQ(e.target.value)}
-        placeholder="Search member…"
-        className="mb-3 w-64 rounded-md border border-[#1f2a3d] bg-[#0b0f17] px-3 py-1.5 text-[13px] text-white placeholder:text-[#6a7da0] focus:border-[#8ab4ff] focus:outline-none"
-      />
+      <div className="mb-3 flex flex-wrap items-center gap-3">
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Search member…"
+          className="w-64 rounded-md border border-[#1f2a3d] bg-[#0b0f17] px-3 py-1.5 text-[13px] text-white placeholder:text-[#6a7da0] focus:border-[#8ab4ff] focus:outline-none"
+        />
+        {inactiveCount > 0 && (
+          <label className="flex items-center gap-2 text-[12px] text-[#9bb0d4]">
+            <input type="checkbox" checked={hideInactive} onChange={(e) => setHideInactive(e.target.checked)} className="accent-[#8ab4ff]" />
+            Hide inactive ({inactiveCount.toLocaleString()})
+          </label>
+        )}
+      </div>
       <div className="overflow-x-auto rounded-lg border border-[#1f2a3d]">
         <table className="w-full border-collapse text-[13px]">
           <thead>

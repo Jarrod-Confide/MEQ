@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { getEngagement, WINDOWS } from "@/lib/engagement-cache";
+import { WINDOWS } from "@/lib/engagement-cache";
+import { getFullLeaderboard } from "@/lib/leaderboard";
 import { TIERS } from "@/lib/engagement";
 import { EngagementTable } from "@/components/EngagementTable";
 import { RefreshButton } from "@/components/RefreshButton";
@@ -21,10 +22,11 @@ export default async function EngagementPage({
     ? Number(daysParam)
     : 90;
   const [data, qualityByEf, flagByEf] = await Promise.all([
-    getEngagement(days),
+    getFullLeaderboard(days),
     fetchQualityByEventflowId(),
     fetchFlagByEventflowId(),
   ]);
+  const activePct = data.total ? Math.round((data.activeCount / data.total) * 100) : 0;
 
   // Decorate each member with quality + country flag (when matched to a contact).
   const enrichedMembers = data.members.map((m) => {
@@ -76,9 +78,10 @@ export default async function EngagementPage({
             ))}
           </div>
           <div className="flex flex-wrap gap-4 text-[13px]">
-            <span>
-              <b className="mr-1 text-base text-[#8ab4ff]">{data.scoredCount}</b>
-              scored
+            <span title="members with any activity in this window">
+              <b className="mr-1 text-base text-[#8ab4ff]">{data.activeCount}</b>
+              active
+              <span className="ml-1 text-[#6a7da0]">of {data.total.toLocaleString()} ({activePct}%)</span>
             </span>
             {TIERS.map((t) => (
               <span key={t} className="flex items-center gap-1.5">
