@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { QualityRow } from "@/lib/quality-data";
 import { TIER_COLOR } from "@/lib/quality-tiers";
 import { TIER_COLOR as ENGAGEMENT_TIER_COLOR } from "./engagement-ui";
+import { PASSIVE_COLOR } from "@/lib/passive";
 
 type SortKey = "qualityScore" | "engagementScore" | "name";
 
@@ -154,6 +155,7 @@ export function QualityTable({ rows }: { rows: QualityRow[] }) {
               <th className="px-3 py-2.5 font-medium">Reports to</th>
               <th className="px-3 py-2.5 font-medium">Team</th>
               <th className="px-3 py-2.5 font-medium">Employment</th>
+              <th className="px-3 py-2.5 font-medium" title="Passive email engagement — clicks (trusted) / opens (recent)">Email</th>
               <th
                 className="cursor-pointer px-3 py-2.5 font-medium hover:text-white"
                 onClick={() => onSort("engagementScore")}
@@ -229,6 +231,18 @@ export function QualityTable({ rows }: { rows: QualityRow[] }) {
                 </td>
                 <td className="px-3 py-2 text-[#9bb0d4]">
                   {EMPLOYMENT_LABEL[r.employmentType ?? "unknown"] ?? "—"}
+                </td>
+                <td className="px-3 py-2">
+                  {r.passiveTier ? (
+                    <span
+                      className="rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                      style={{ background: `${PASSIVE_COLOR[r.passiveTier]}22`, color: PASSIVE_COLOR[r.passiveTier] }}
+                    >
+                      {r.passiveTier}
+                    </span>
+                  ) : (
+                    <span className="text-[#6a7da0]">—</span>
+                  )}
                 </td>
                 <td className="px-3 py-2">
                   {r.engagementScore != null ? (

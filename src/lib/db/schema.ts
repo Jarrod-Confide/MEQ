@@ -98,6 +98,12 @@ export const memberQuality = pgTable("member_quality", {
   company: text("company"),
   industry: text("industry"), // company object's `industry` enum value (raw)
 
+  // ── Passive email engagement (HubSpot) — clicks are the trusted signal
+  // (opens are inflated by Apple Mail Privacy Protection). Recency matters.
+  emailClicks: integer("email_clicks"),
+  emailLastClickAt: timestamp("email_last_click_at", { withTimezone: true }),
+  emailLastOpenAt: timestamp("email_last_open_at", { withTimezone: true }),
+
   // ── HubSpot contact properties (raw) ──
   companySize: text("company_size"), // numemployees: "1-5" … "1000+"
   employmentStatus: text("employment_status"), // Employed | vCISO | In Transition

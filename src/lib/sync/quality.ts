@@ -26,7 +26,17 @@ const HS_PROPS = [
   "lastname",
   "date_joined__the_ciso_society_",
   "createdate",
+  // Passive email engagement — clicks (trusted) + recency.
+  "hs_email_click",
+  "hs_email_last_click_date",
+  "hs_email_last_open_date",
 ];
+
+function parseDate(s: string | null | undefined): Date | null {
+  if (!s) return null;
+  const d = new Date(s);
+  return isNaN(d.getTime()) ? null : d;
+}
 
 function classifyEmployment(status: string | null): string {
   switch (status) {
@@ -180,6 +190,9 @@ export async function enrichQuality(): Promise<QualityStats> {
       name,
       company,
       industry,
+      emailClicks: Number(p.hs_email_click) || 0,
+      emailLastClickAt: parseDate(p.hs_email_last_click_date),
+      emailLastOpenAt: parseDate(p.hs_email_last_open_date),
       companySize,
       employmentStatus: p.current_employment_status || null,
       reportingTo: p.reporting_to_ || null,
@@ -216,6 +229,9 @@ export async function enrichQuality(): Promise<QualityStats> {
           name: sql`excluded.name`,
           company: sql`excluded.company`,
           industry: sql`excluded.industry`,
+          emailClicks: sql`excluded.email_clicks`,
+          emailLastClickAt: sql`excluded.email_last_click_at`,
+          emailLastOpenAt: sql`excluded.email_last_open_at`,
           companySize: sql`excluded.company_size`,
           employmentStatus: sql`excluded.employment_status`,
           reportingTo: sql`excluded.reporting_to`,

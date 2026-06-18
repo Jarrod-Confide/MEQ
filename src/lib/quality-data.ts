@@ -2,6 +2,7 @@ import { desc, eq, isNotNull } from "drizzle-orm";
 import { meqDb, schema } from "./db/meq";
 import { QUALITY_TIER_ORDER } from "./quality-tiers";
 import { safeIso } from "./safe-date";
+import { passiveTier, type PassiveTier } from "./passive";
 
 export { QUALITY_TIER_ORDER };
 
@@ -52,6 +53,7 @@ export type QualityRow = {
   authorityScore: number | null;
   teamScore: number | null;
   employmentScore: number | null;
+  passiveTier: PassiveTier; // email engagement (clicks/opens recency)
   // Decorated server-side from the engagement leaderboard (cached).
   engagementScore?: number | null;
   engagementTier?: string | null;
@@ -93,12 +95,16 @@ export async function fetchQuality(): Promise<QualityData> {
       authorityScore: schema.memberQuality.authorityScore,
       teamScore: schema.memberQuality.teamScore,
       employmentScore: schema.memberQuality.employmentScore,
+      emailClicks: schema.memberQuality.emailClicks,
+      emailLastClickAt: schema.memberQuality.emailLastClickAt,
+      emailLastOpenAt: schema.memberQuality.emailLastOpenAt,
       syncedAt: schema.memberQuality.syncedAt,
     })
     .from(schema.memberQuality)
     .leftJoin(schema.members, eq(schema.memberQuality.memberId, schema.members.id))
     .orderBy(desc(schema.memberQuality.qualityScore), schema.memberQuality.name);
 
+  const nowMs = Date.now();
   const mapped: QualityRow[] = rows.map((r) => ({
     memberId: r.memberId,
     eventflowContactId: r.eventflowContactId ?? null,
@@ -119,6 +125,7 @@ export async function fetchQuality(): Promise<QualityData> {
     authorityScore: r.authorityScore,
     teamScore: r.teamScore,
     employmentScore: r.employmentScore,
+    passiveTier: passiveTier(r.emailClicks, r.emailLastClickAt, r.emailLastOpenAt, nowMs),
   }));
 
   const has = (r: QualityRow, t: string) => r.tags.includes(t);
