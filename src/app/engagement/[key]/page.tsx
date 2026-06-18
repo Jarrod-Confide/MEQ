@@ -4,6 +4,9 @@ import { getMemberDetail } from "@/lib/member-detail";
 import { WINDOWS } from "@/lib/engagement-cache";
 import { DIMENSION_WEIGHTS, type Dimension } from "@/lib/engagement";
 import { TierBadge, DimBar, TIER_COLOR, DIMENSION_LABEL } from "@/components/engagement-ui";
+import { LineChart } from "@/components/charts";
+import { PASSIVE_COLOR } from "@/lib/passive";
+import { TIER_COLOR as QUALITY_TIER_COLOR } from "@/lib/quality-tiers";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +27,7 @@ export default async function MemberDetailPage({
 
   const detail = await getMemberDetail(decodeURIComponent(key), days);
   if (!detail) notFound();
-  const { score, emails, recentMessages, events } = detail;
+  const { score, emails, recentMessages, events, trend, topics, quality, passive } = detail;
 
   const stat = (label: string, value: number | string) => (
     <div className="rounded-lg border border-[#1f2a3d] bg-[#111726] px-4 py-3">
@@ -61,12 +64,59 @@ export default async function MemberDetailPage({
         )}
       </div>
 
-      <div className="mt-5 flex items-baseline gap-3">
-        <span className="text-5xl font-bold tabular-nums text-[#8ab4ff]">
-          {score.total.toFixed(1)}
-        </span>
-        <span className="text-[13px] text-[#9bb0d4]">composite score (0–100)</span>
+      <div className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-3">
+        <div className="flex items-baseline gap-3">
+          <span className="text-5xl font-bold tabular-nums text-[#8ab4ff]">
+            {score.total.toFixed(1)}
+          </span>
+          <span className="text-[13px] text-[#9bb0d4]">engagement (0–100)</span>
+        </div>
+        {quality && quality.score != null && (
+          <div className="flex items-baseline gap-2">
+            <span className="text-2xl font-bold tabular-nums" style={{ color: quality.tier ? QUALITY_TIER_COLOR[quality.tier] ?? "#cfdaee" : "#cfdaee" }}>
+              {quality.score}
+            </span>
+            <span className="text-[13px] text-[#9bb0d4]">quality{quality.tier ? ` · ${quality.tier}` : ""}</span>
+          </div>
+        )}
+        {passive.tier && (
+          <span className="rounded-full px-2.5 py-1 text-[12px] font-semibold" style={{ background: `${PASSIVE_COLOR[passive.tier]}22`, color: PASSIVE_COLOR[passive.tier] }}>
+            Email: {passive.tier}{passive.clicks != null && passive.clicks > 0 ? ` · ${passive.clicks} clicks` : ""}
+          </span>
+        )}
       </div>
+
+      {/* Engagement trend */}
+      {trend.length > 1 && (
+        <>
+          <h2 className="mb-2 mt-8 text-[13px] uppercase tracking-wide text-[#9bb0d4]">
+            Engagement trend (weekly)
+          </h2>
+          <div className="rounded-lg border border-[#1f2a3d] bg-[#111726] p-3">
+            <LineChart
+              labels={trend.map((t) => t.week.slice(5))}
+              series={[{ label: "Engagement", color: "#8ab4ff", points: trend.map((t) => t.total) }]}
+              yMax={100}
+            />
+          </div>
+        </>
+      )}
+
+      {/* Topics they post about */}
+      {topics.length > 0 && (
+        <>
+          <h2 className="mb-2 mt-8 text-[13px] uppercase tracking-wide text-[#9bb0d4]">
+            What they talk about
+          </h2>
+          <div className="flex flex-wrap gap-2">
+            {topics.map((t) => (
+              <span key={t.topic} className="rounded-full border border-[#2d3d5c] px-2.5 py-1 text-[12px] text-[#cfdaee]">
+                {t.topic.replace(/_/g, " ")} <span className="text-[#6a7da0]">{t.count}</span>
+              </span>
+            ))}
+          </div>
+        </>
+      )}
 
       {/* Dimension breakdown */}
       <h2 className="mb-3 mt-8 text-[13px] uppercase tracking-wide text-[#9bb0d4]">
@@ -149,11 +199,25 @@ export default async function MemberDetailPage({
                 key={i}
                 className="rounded-lg border border-[#1f2a3d] bg-[#111726] px-4 py-2.5"
               >
-                <div className="mb-1 flex items-center gap-2 text-[11px] text-[#6a7da0]">
+                <div className="mb-1 flex flex-wrap items-center gap-2 text-[11px] text-[#6a7da0]">
                   <span className="text-[#8ab4ff]">{m.channel}</span>
                   <span>· {m.source}</span>
                   <span>· {m.isReply ? "reply" : "post"}</span>
                   <span>· {new Date(m.postedAt).toLocaleString()}</span>
+                  {m.contentWeight != null && (
+                    <span
+                      className="rounded px-1.5 py-0.5 font-semibold"
+                      style={{ background: "#8ab4ff22", color: "#8ab4ff" }}
+                      title="content substance weight (0–10)"
+                    >
+                      wt {m.contentWeight}
+                    </span>
+                  )}
+                  {m.topics.map((t) => (
+                    <span key={t} className="rounded bg-[#1a2238] px-1.5 py-0.5 text-[#9bb0d4]">
+                      {t.replace(/_/g, " ")}
+                    </span>
+                  ))}
                 </div>
                 <div className="text-[13px] leading-relaxed text-[#cfdaee]">
                   {m.preview}

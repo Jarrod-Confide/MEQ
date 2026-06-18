@@ -113,8 +113,11 @@ export function QuadrantScatter({ points }: { points: QuadrantPoint[] }) {
                 fill={QUAD[qk].color}
                 fillOpacity={dim ? 0.08 : 0.55}
                 stroke="none"
-                style={{ cursor: "pointer" }}
-                onClick={() => router.push(`/engagement/${encodeURIComponent("c:" + p.memberId)}`)}
+                style={{ cursor: p.eventflowContactId ? "pointer" : "default" }}
+                onClick={() =>
+                  p.eventflowContactId &&
+                  router.push(`/engagement/${encodeURIComponent("c:" + p.eventflowContactId)}`)
+                }
               >
                 <title>{`${p.name ?? "—"}${p.company ? " · " + p.company : ""}\nengagement ${p.engagement} · quality ${p.quality}`}</title>
               </circle>
