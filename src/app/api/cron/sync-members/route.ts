@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { syncMembers } from "@/lib/sync/members";
 import { enrichQuality } from "@/lib/sync/quality";
+import { notifySlack } from "@/lib/alert";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
@@ -22,6 +23,7 @@ export async function GET(request: Request) {
     const quality = await enrichQuality();
     return NextResponse.json({ ok: true, members, quality });
   } catch (err) {
+    await notifySlack(`member sync cron failed — ${String(err).slice(0, 300)}`);
     return NextResponse.json({ ok: false, error: String(err) }, { status: 500 });
   }
 }

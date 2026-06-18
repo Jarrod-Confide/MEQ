@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { writeSnapshot, backfillSnapshots } from "@/lib/sync/snapshots";
+import { notifySlack } from "@/lib/alert";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -27,6 +28,7 @@ export async function GET(request: Request) {
     const stats = await writeSnapshot();
     return NextResponse.json({ ok: true, mode: "weekly", ...stats });
   } catch (err) {
+    await notifySlack(`snapshot cron failed — ${String(err).slice(0, 300)}`);
     return NextResponse.json({ ok: false, error: String(err) }, { status: 500 });
   }
 }

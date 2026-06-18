@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { scoreMessages } from "@/lib/sync/message-scores";
+import { notifySlack } from "@/lib/alert";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -26,6 +27,7 @@ export async function GET(request: Request) {
     const stats = await scoreMessages({ limit });
     return NextResponse.json({ ok: true, ...stats });
   } catch (err) {
+    await notifySlack(`message-scoring cron failed — ${String(err).slice(0, 300)}`);
     return NextResponse.json({ ok: false, error: String(err) }, { status: 500 });
   }
 }
