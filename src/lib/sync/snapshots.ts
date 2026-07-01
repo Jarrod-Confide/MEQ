@@ -53,7 +53,7 @@ export async function writeSnapshot(asOf: Date = new Date()): Promise<SnapshotSt
       name: m.name,
       isMember: m.isMember,
       matched: m.matched,
-      territory: member ? territoryFromCity(member.city) : "INTL",
+      territory: member ? territoryFromCity(member.city) : "OTHER",
       total: m.total,
       tier: m.tier,
       dimensions: m.dimensions as Record<string, number>,

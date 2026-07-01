@@ -1,56 +1,83 @@
 import { CITY_GEO } from "./cities";
 
 /**
- * North America split into four geographic quadrants for the four community
- * managers. Lines are CONFIGURABLE — members cluster in the Northeast, so the
- * NE book will be heaviest; nudge these to rebalance without other changes.
- *   - East / West divided at LON_SPLIT (≈ 100°W, mid-continent)
- *   - North / South divided at LAT_SPLIT (≈ 39.5°N, ~Mason-Dixon)
+ * The four Community Manager regions, defined by an explicit list of US states
+ * (+ two Canadian provinces). This REPLACED the old lat/lng "geographic
+ * quadrant" model — regions are now assigned by a member's home state, not by
+ * coordinates, so they line up exactly with each CM's book of business.
+ *
+ * Source of truth: the CM regions doc. Anything we can't place in a region
+ * (international members, Canadian provinces outside BC/AB, unmapped cities)
+ * falls into OTHER.
  */
-export const LON_SPLIT = -100;
-export const LAT_SPLIT = 39.5;
-
-// North America = US, Canada, Mexico (+ common territory codes).
-const NA_COUNTRIES = new Set(["US", "USA", "CA", "MX", "PR"]);
-
-export const TERRITORIES = ["NE", "SE", "NW", "SW", "INTL"] as const;
+export const TERRITORIES = ["NE", "CENTRAL", "WEST", "SE", "OTHER"] as const;
 export type Territory = (typeof TERRITORIES)[number];
 
 export const TERRITORY_LABEL: Record<Territory, string> = {
   NE: "Northeast",
+  CENTRAL: "Central",
+  WEST: "West",
   SE: "Southeast",
-  NW: "Northwest",
-  SW: "Southwest",
-  INTL: "International",
+  OTHER: "Other / Intl",
 };
 
-export const TERRITORY_ORDER: Territory[] = ["NE", "SE", "NW", "SW", "INTL"];
+/** The community manager who owns each region (OTHER is unassigned). */
+export const TERRITORY_CM: Record<Territory, string | null> = {
+  NE: "Angelica",
+  CENTRAL: "Brandy",
+  WEST: "Bridget",
+  SE: "Sean",
+  OTHER: null,
+};
+
+export const TERRITORY_ORDER: Territory[] = ["NE", "CENTRAL", "WEST", "SE", "OTHER"];
 
 export const TERRITORY_COLOR: Record<Territory, string> = {
   NE: "#8ab4ff",
+  CENTRAL: "#facc15",
+  WEST: "#a78bfa",
   SE: "#22c55e",
-  NW: "#a78bfa",
-  SW: "#facc15",
-  INTL: "#6a7da0",
+  OTHER: "#6a7da0",
 };
 
-/** Assign a quadrant from coordinates + country. Non-NA → INTL. */
-export function territoryFromCoords(
-  lat: number,
-  lng: number,
-  country: string | null | undefined
-): Territory {
-  if (!country || !NA_COUNTRIES.has(country.toUpperCase())) return "INTL";
-  const north = lat >= LAT_SPLIT;
-  const east = lng >= LON_SPLIT;
-  if (north) return east ? "NE" : "NW";
-  return east ? "SE" : "SW";
+/**
+ * State / province code → region. Keys are 2-letter codes as stored in
+ * CITY_GEO.state. NOTE: "NE" here is the STATE Nebraska (→ Central), not the
+ * Northeast region — the collision is harmless because keys are state codes.
+ */
+export const STATE_TO_REGION: Record<string, Territory> = {
+  // Northeast — Angelica
+  VA: "NE", MD: "NE", DC: "NE", DE: "NE", WV: "NE", NY: "NE", NJ: "NE",
+  CT: "NE", RI: "NE", MA: "NE", NH: "NE", VT: "NE", ME: "NE", PA: "NE",
+  OH: "NE", MI: "NE",
+  // Central — Brandy  (NE = Nebraska)
+  TX: "CENTRAL", OK: "CENTRAL", LA: "CENTRAL", AR: "CENTRAL", KS: "CENTRAL",
+  MO: "CENTRAL", IL: "CENTRAL", IA: "CENTRAL", NE: "CENTRAL", ND: "CENTRAL",
+  SD: "CENTRAL", WI: "CENTRAL", MN: "CENTRAL",
+  // West — Bridget  (+ Canadian BC / AB)
+  AZ: "WEST", CA: "WEST", NM: "WEST", NV: "WEST", CO: "WEST", UT: "WEST",
+  ID: "WEST", MT: "WEST", WY: "WEST", OR: "WEST", WA: "WEST",
+  BC: "WEST", AB: "WEST",
+  // Southeast — Sean
+  AL: "SE", FL: "SE", GA: "SE", MS: "SE", NC: "SE", SC: "SE", TN: "SE",
+  // States not in the CM doc, assigned by geography so no domestic member
+  // falls into OTHER. With these, all 50 states + DC are covered.
+  IN: "CENTRAL", // Indiana → Central
+  KY: "SE", // Kentucky → Southeast
+  HI: "WEST", // Hawaii → West
+  AK: "WEST", // Alaska → West
+};
+
+/** Region from a 2-letter state/province code. Unknown → OTHER. */
+export function regionFromState(state: string | null | undefined): Territory {
+  if (!state) return "OTHER";
+  return STATE_TO_REGION[state.toUpperCase()] ?? "OTHER";
 }
 
-/** Assign a quadrant from a closest-major-city name (via CITY_GEO). */
+/** Assign a region from a closest-major-city name (via CITY_GEO → state). */
 export function territoryFromCity(city: string | null | undefined): Territory {
-  if (!city) return "INTL";
+  if (!city) return "OTHER";
   const geo = CITY_GEO[city];
-  if (!geo) return "INTL";
-  return territoryFromCoords(geo.lat, geo.lng, geo.country);
+  if (!geo) return "OTHER";
+  return regionFromState(geo.state);
 }

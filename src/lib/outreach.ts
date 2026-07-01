@@ -99,7 +99,7 @@ export async function fetchOutreach(territory: Territory | "ALL" = "ALL"): Promi
   const nowMs = Date.now();
 
   const mapped: OutreachRow[] = rows
-    .filter((r) => (territory === "ALL" ? true : (r.territory ?? "INTL") === territory))
+    .filter((r) => (territory === "ALL" ? true : (r.territory ?? "OTHER") === territory))
     .map((r) => {
       const dims = r.dimensions ?? {};
       const delta =
@@ -111,7 +111,7 @@ export async function fetchOutreach(territory: Territory | "ALL" = "ALL"): Promi
         email: r.email,
         slackUserId: r.slack_user_id,
         circleMemberId: r.circle_member_id,
-        territory: ((r.territory as Territory) ?? "INTL") as Territory,
+        territory: ((r.territory as Territory) ?? "OTHER") as Territory,
         qualityScore: r.quality_score,
         qualityTier: r.quality_tier,
         engagementScore: r.total != null ? Math.round(r.total * 10) / 10 : null,

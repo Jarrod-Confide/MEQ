@@ -2,8 +2,6 @@
 
 import { useEffect, useRef } from "react";
 import {
-  LON_SPLIT,
-  LAT_SPLIT,
   TERRITORY_COLOR,
   TERRITORY_LABEL,
   TERRITORY_ORDER,
@@ -44,11 +42,6 @@ export function TerritoryMap({ points }: { points: TerritoryPoint[] }) {
         attribution: "© OpenStreetMap",
       }).addTo(map);
 
-      // Dividing lines (configurable in lib/territory.ts).
-      const lineStyle = { color: "#ef4444", weight: 2, dashArray: "6 6", opacity: 0.8 };
-      L.polyline([[12, LON_SPLIT], [75, LON_SPLIT]], lineStyle).addTo(map); // E/W meridian
-      L.polyline([[LAT_SPLIT, -170], [LAT_SPLIT, -50]], lineStyle).addTo(map); // N/S parallel
-
       for (const p of points) {
         L.circleMarker([p.lat, p.lng], {
           radius: 4 + Math.sqrt(p.members) * 2.2,
@@ -59,7 +52,7 @@ export function TerritoryMap({ points }: { points: TerritoryPoint[] }) {
           fillOpacity: 0.82,
         })
           .bindPopup(
-            `<b>${p.name}</b><br/><span style="color:#9bb0d4">${p.members} members</span><br/>territory: <b>${TERRITORY_LABEL[p.territory]}</b>`
+            `<b>${p.name}</b><br/><span style="color:#9bb0d4">${p.members} members</span><br/>region: <b>${TERRITORY_LABEL[p.territory]}</b>`
           )
           .addTo(map);
       }
@@ -79,7 +72,7 @@ export function TerritoryMap({ points }: { points: TerritoryPoint[] }) {
     <div className="relative h-full w-full bg-[#0b0f17]">
       <div className="absolute bottom-3 left-3 z-[1000] rounded-md border border-[#2d3d5c] bg-[#0b0f17]/95 px-3 py-2 shadow-lg">
         <div className="mb-1 text-[10px] uppercase tracking-wide text-[#6a7da0]">
-          Territory (geographic quadrant)
+          CM region (by home state)
         </div>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
           {TERRITORY_ORDER.map((t) => (
@@ -88,10 +81,6 @@ export function TerritoryMap({ points }: { points: TerritoryPoint[] }) {
               {TERRITORY_LABEL[t]}
             </span>
           ))}
-          <span className="flex items-center gap-1.5 text-[11px] text-[#cfdaee]">
-            <span className="inline-block h-0 w-4 border-t-2 border-dashed border-[#ef4444]" />
-            dividing lines ({Math.abs(LON_SPLIT)}°W · {LAT_SPLIT}°N)
-          </span>
         </div>
       </div>
       <div ref={containerRef} className="h-full w-full" />

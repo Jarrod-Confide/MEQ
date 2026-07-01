@@ -184,7 +184,7 @@ export const memberEngagementSnapshots = pgTable(
     name: text("name"),
     isMember: boolean("is_member").notNull().default(false),
     matched: boolean("matched").notNull().default(false),
-    territory: text("territory"), // NE | SE | NW | SW | INTL
+    territory: text("territory"), // NE | CENTRAL | WEST | SE | OTHER (CM region)
     total: doublePrecision("total"),
     tier: text("tier"),
     dimensions: jsonb("dimensions").$type<Record<string, number>>().default({}),
