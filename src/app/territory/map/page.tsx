@@ -1,24 +1,27 @@
 import Link from "next/link";
 import { Nav } from "@/components/Nav";
 import { fetchMemberMap } from "@/lib/members";
-import { TerritoryMap, type TerritoryPoint } from "@/components/TerritoryMap";
+import { RegionChoropleth, type MemberDot } from "@/components/RegionChoropleth";
 import { territoryFromCity, TERRITORY_LABEL, TERRITORY_ORDER } from "@/lib/territory";
 
 export const revalidate = 300;
 
 export default async function TerritoryMapPage() {
   const data = await fetchMemberMap();
-  const points: TerritoryPoint[] = data.points.map((p) => ({
+
+  const dots: MemberDot[] = data.points.map((p) => ({
     name: p.name,
     lat: p.lat,
     lng: p.lng,
     members: p.members,
-    territory: territoryFromCity(p.name),
   }));
 
-  // Member totals per territory (for the header chips).
+  // Member totals per region (for the header chips).
   const totals = new Map<string, number>();
-  for (const p of points) totals.set(p.territory, (totals.get(p.territory) ?? 0) + p.members);
+  for (const p of data.points) {
+    const t = territoryFromCity(p.name);
+    totals.set(t, (totals.get(t) ?? 0) + p.members);
+  }
 
   return (
     <div className="flex h-screen flex-col">
@@ -37,11 +40,11 @@ export default async function TerritoryMapPage() {
             <b className="text-[#cfdaee]">{TERRITORY_LABEL[t]}:</b> {(totals.get(t) ?? 0).toLocaleString()}
           </span>
         ))}
-        <span className="text-[#6a7da0]">Cities mapped by closest major city; colored by CM region (home state).</span>
+        <span className="text-[#6a7da0]">States colored by CM region; white dots = member locations.</span>
       </div>
 
       <main className="flex-1 overflow-hidden">
-        <TerritoryMap points={points} />
+        <RegionChoropleth points={dots} />
       </main>
     </div>
   );
