@@ -43,7 +43,7 @@ function TierPill({ tier, score, kind }: { tier: string | null; score: number | 
   const color = tier ? (kind === "q" ? Q_TIER_COLOR[tier] : (ENG_TIER_COLOR as Record<string, string>)[tier]) ?? "#6a7da0" : "#6a7da0";
   return (
     <span className="flex items-center gap-1.5">
-      <span className="font-semibold tabular-nums text-white">{Math.round(score)}</span>
+      <span className="font-semibold tabular-nums text-white">{kind === "e" ? score.toFixed(1) : Math.round(score)}</span>
       {tier && (
         <span className="rounded-full px-1.5 py-0.5 text-[10px] font-semibold" style={{ background: `${color}22`, color }}>
           {tier}

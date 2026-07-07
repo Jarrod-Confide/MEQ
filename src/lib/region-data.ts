@@ -1,7 +1,8 @@
 import { unstable_cache } from "next/cache";
 import { eq, isNotNull } from "drizzle-orm";
-import { meqDb, schema } from "./db/meq";
+import { meqDb, meqSql, schema } from "./db/meq";
 import { getFullLeaderboard } from "./leaderboard";
+import { CITY_GEO } from "./cities";
 import { territoryFromCity, TERRITORIES, type Territory } from "./territory";
 
 /**
@@ -143,5 +144,92 @@ export function getRegions(days: number): Promise<RegionsData> {
   return unstable_cache(() => fetchRegions(days), ["regions", String(days)], {
     revalidate: 300,
     tags: ["engagement", "snapshots"],
+  })();
+}
+
+// ── Per-city engagement trend (for the region hotspot map) ──────────────────
+
+export type CityTrend = {
+  city: string;
+  lat: number;
+  lng: number;
+  members: number; // roster members in this city
+  avgNow: number | null; // avg engagement, latest snapshot week
+  delta: number | null; // avgNow - avg ~4 weeks ago; null if insufficient history
+  scoredNow: number; // members scored in the latest week (trend confidence)
+};
+
+type CityWeekRow = { city: string | null; week: string; avg_total: number; scored: number };
+
+/**
+ * Per-city avg engagement for the latest snapshot week vs ~4 weeks prior,
+ * scoped to one region. Powers the trend-first hotspot map: which metros are
+ * heating up vs cooling off. City comes from the roster join (members'
+ * closest_major_city), so it works regardless of the territory value stamped
+ * into older snapshots.
+ */
+export async function fetchRegionCityTrends(region: Territory): Promise<CityTrend[]> {
+  const [weekRows, rosterCounts] = await Promise.all([
+    meqSql<CityWeekRow[]>`
+      WITH latest AS (SELECT MAX(week_start) w FROM member_engagement_snapshots),
+      prior AS (
+        SELECT week_start w FROM member_engagement_snapshots
+        WHERE week_start <= (SELECT w FROM latest) - INTERVAL '28 days'
+        ORDER BY week_start DESC LIMIT 1
+      )
+      SELECT m.closest_major_city city,
+             CASE WHEN s.week_start = (SELECT w FROM latest) THEN 'now' ELSE 'prior' END week,
+             AVG(s.total)::float avg_total,
+             COUNT(*)::int scored
+      FROM member_engagement_snapshots s
+      JOIN members m ON m.id = s.member_id
+      WHERE s.week_start IN ((SELECT w FROM latest), (SELECT w FROM prior))
+        AND m.closest_major_city IS NOT NULL
+      GROUP BY m.closest_major_city, week`,
+    meqSql<{ city: string | null; n: number }[]>`
+      SELECT closest_major_city city, COUNT(*)::int n
+      FROM members
+      WHERE eventflow_contact_id IS NOT NULL AND closest_major_city IS NOT NULL
+      GROUP BY closest_major_city`,
+  ]);
+
+  const byCity = new Map<string, { now?: CityWeekRow; prior?: CityWeekRow }>();
+  for (const r of weekRows) {
+    if (!r.city) continue;
+    const e = byCity.get(r.city) ?? {};
+    if (r.week === "now") e.now = r;
+    else e.prior = r;
+    byCity.set(r.city, e);
+  }
+
+  const out: CityTrend[] = [];
+  for (const rc of rosterCounts) {
+    const city = rc.city;
+    if (!city || territoryFromCity(city) !== region) continue;
+    const geo = CITY_GEO[city];
+    if (!geo) continue;
+    const w = byCity.get(city);
+    const avgNow = w?.now ? Math.round(w.now.avg_total * 10) / 10 : null;
+    const delta =
+      w?.now && w?.prior ? Math.round((w.now.avg_total - w.prior.avg_total) * 10) / 10 : null;
+    out.push({
+      city,
+      lat: geo.lat,
+      lng: geo.lng,
+      members: rc.n,
+      avgNow,
+      delta,
+      scoredNow: w?.now?.scored ?? 0,
+    });
+  }
+  out.sort((a, b) => b.members - a.members);
+  return out;
+}
+
+/** Cached wrapper (5 min). */
+export function getRegionCityTrends(region: Territory): Promise<CityTrend[]> {
+  return unstable_cache(() => fetchRegionCityTrends(region), ["region-city-trends", region], {
+    revalidate: 300,
+    tags: ["snapshots"],
   })();
 }

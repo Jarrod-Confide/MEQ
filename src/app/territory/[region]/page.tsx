@@ -1,26 +1,17 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Nav } from "@/components/Nav";
-import { getRegions } from "@/lib/region-data";
+import { getRegions, getRegionCityTrends } from "@/lib/region-data";
+import { RegionMemberTable } from "@/components/RegionMemberTable";
+import { RegionTrendMap } from "@/components/RegionTrendMap";
 import { WINDOWS } from "@/lib/engagement-cache";
 import { TERRITORIES, TERRITORY_LABEL, TERRITORY_CM, TERRITORY_COLOR, type Territory } from "@/lib/territory";
-import { TierBadge, TIER_COLOR } from "@/components/engagement-ui";
-import type { Tier } from "@/lib/engagement";
+import { TIER_COLOR } from "@/components/engagement-ui";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 const DEFAULT_DAYS = 90;
-
-function qualityColor(tier: string | null): string {
-  switch (tier) {
-    case "Platinum": return "#e5e7eb";
-    case "Gold": return "#facc15";
-    case "Silver": return "#cbd5e1";
-    case "Bronze": return "#d6a06a";
-    default: return "#6a7da0";
-  }
-}
 
 export default async function RegionDetailPage({
   params,
@@ -36,7 +27,7 @@ export default async function RegionDetailPage({
   const { days: daysParam } = await searchParams;
   const days = WINDOWS.some((w) => String(w.days) === daysParam) ? Number(daysParam) : DEFAULT_DAYS;
 
-  const data = await getRegions(days);
+  const [data, cityTrends] = await Promise.all([getRegions(days), getRegionCityTrends(region)]);
   const summary = data.summaries.find((s) => s.region === region)!;
   const members = data.membersByRegion[region];
   const cm = TERRITORY_CM[region];
@@ -77,75 +68,31 @@ export default async function RegionDetailPage({
         {/* Summary tiles */}
         <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
           <Stat label="Members" value={summary.members.toLocaleString()} color="#cfdaee" />
-          <Stat label="Avg engagement" value={String(summary.avgEngagement)} color={color} />
+          <Stat label="Avg engagement" value={summary.avgEngagement.toFixed(1)} color={color} />
           <Stat label="% engaged" value={`${summary.engagedRate}%`} color="#22c55e" />
           <Stat label="Champions+Active" value={summary.champions.toLocaleString()} color={TIER_COLOR.Active} />
           <Stat label="Avg quality" value={summary.avgQuality != null ? String(summary.avgQuality) : "—"} color="#c4b5fd" />
           <Stat label="High-quality" value={summary.highQuality.toLocaleString()} color="#facc15" />
         </section>
 
+        {/* Hotspot map — 4-week engagement trend by city */}
+        <section className="rounded-lg border border-[#1f2a3d] bg-[#111726]">
+          <div className="flex items-center justify-between border-b border-[#1f2a3d] px-5 py-3">
+            <h2 className="text-[13px] uppercase tracking-wide text-[#9bb0d4]">Hotspots — engagement trend by city</h2>
+            <span className="text-[11px] text-[#6a7da0]">latest snapshot week vs ~4 weeks prior</span>
+          </div>
+          <div className="h-[380px] overflow-hidden rounded-b-lg bg-[#0b0f17]">
+            <RegionTrendMap cities={cityTrends} />
+          </div>
+        </section>
+
         {/* Member ranking */}
         <section className="rounded-lg border border-[#1f2a3d] bg-[#111726] p-0">
           <div className="flex items-center justify-between border-b border-[#1f2a3d] px-5 py-3">
             <h2 className="text-[13px] uppercase tracking-wide text-[#9bb0d4]">Most-engaged members</h2>
-            <span className="text-[11px] text-[#6a7da0]">{members.length.toLocaleString()} members · ranked by engagement</span>
+            <span className="text-[11px] text-[#6a7da0]">{members.length.toLocaleString()} members · click a column to sort</span>
           </div>
-          {members.length === 0 ? (
-            <div className="px-5 py-8 text-center text-[13px] text-[#6a7da0]">No members in this region.</div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-[13px]">
-                <thead>
-                  <tr className="text-left text-[11px] uppercase tracking-wide text-[#6a7da0]">
-                    <th className="px-5 py-2 font-medium">#</th>
-                    <th className="px-3 py-2 font-medium">Member</th>
-                    <th className="px-3 py-2 font-medium">Engagement</th>
-                    <th className="px-3 py-2 font-medium">Quality</th>
-                    <th className="px-3 py-2 font-medium">Company</th>
-                    <th className="px-3 py-2 font-medium">City</th>
-                    <th className="px-3 py-2 font-medium">Contact</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {members.map((m, i) => (
-                    <tr key={m.key} className="border-t border-[#141c2b] hover:bg-[#0d121e]">
-                      <td className="px-5 py-2 tabular-nums text-[#6a7da0]">{i + 1}</td>
-                      <td className="px-3 py-2">
-                        <Link href={`/engagement/${encodeURIComponent(m.key)}`} className="text-[#cfdaee] hover:text-white hover:underline">
-                          {m.name}
-                        </Link>
-                      </td>
-                      <td className="px-3 py-2">
-                        <div className="flex items-center gap-2">
-                          <span className="tabular-nums font-semibold" style={{ color: TIER_COLOR[(m.tier as Tier)] ?? "#cfdaee" }}>{m.total}</span>
-                          <TierBadge tier={m.tier as Tier} />
-                        </div>
-                      </td>
-                      <td className="px-3 py-2">
-                        {m.qualityScore != null ? (
-                          <span className="tabular-nums" style={{ color: qualityColor(m.qualityTier) }}>
-                            {m.qualityScore}
-                            {m.qualityTier ? <span className="ml-1 text-[11px] text-[#6a7da0]">{m.qualityTier}</span> : null}
-                          </span>
-                        ) : (
-                          <span className="text-[#6a7da0]">—</span>
-                        )}
-                      </td>
-                      <td className="px-3 py-2 text-[#9bb0d4]">{m.company ?? "—"}</td>
-                      <td className="px-3 py-2 text-[#9bb0d4]">{m.city ?? "—"}</td>
-                      <td className="px-3 py-2">
-                        {m.email ? (
-                          <a href={`mailto:${m.email}`} className="text-[#8ab4ff] hover:underline">{m.email}</a>
-                        ) : (
-                          <span className="text-[#6a7da0]">—</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+          <RegionMemberTable members={members} />
         </section>
       </main>
     </div>

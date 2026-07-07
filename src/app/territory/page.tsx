@@ -67,7 +67,7 @@ export default async function RegionsPage({
           {leader && biggest && (
             <div className="text-[12px] text-[#9bb0d4]">
               <span className="text-[#cfdaee] font-medium">{TERRITORY_LABEL[biggest.region]}</span> is biggest ({biggest.members.toLocaleString()} members);{" "}
-              <span className="text-[#cfdaee] font-medium">{TERRITORY_LABEL[leader.region]}</span> is most engaged (avg {leader.avgEngagement}).
+              <span className="text-[#cfdaee] font-medium">{TERRITORY_LABEL[leader.region]}</span> is most engaged (avg {leader.avgEngagement.toFixed(1)}).
             </div>
           )}
         </div>
@@ -85,7 +85,7 @@ export default async function RegionsPage({
                       className="flex h-full items-center justify-end rounded pr-2 text-[11px] font-semibold text-[#0b0f17]"
                       style={{ width: `${Math.max(6, (s.avgEngagement / maxAvg) * 100)}%`, background: TERRITORY_COLOR[s.region] }}
                     >
-                      {s.avgEngagement}
+                      {s.avgEngagement.toFixed(1)}
                     </div>
                   </div>
                 </div>
@@ -136,7 +136,7 @@ function RegionCard({ s, muted }: { s: RegionSummary; muted?: boolean }) {
           </div>
         </div>
         <div className="text-right">
-          <div className="text-2xl font-bold tabular-nums" style={{ color }}>{s.avgEngagement}</div>
+          <div className="text-2xl font-bold tabular-nums" style={{ color }}>{s.avgEngagement.toFixed(1)}</div>
           <div className="text-[10px] uppercase tracking-wide text-[#6a7da0]">avg engagement</div>
         </div>
       </div>

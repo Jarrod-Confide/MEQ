@@ -248,7 +248,7 @@ export function QualityTable({ rows }: { rows: QualityRow[] }) {
                   {r.engagementScore != null ? (
                     <span className="flex items-center gap-1.5">
                       <span className="font-semibold tabular-nums text-white">
-                        {r.engagementScore.toFixed(0)}
+                        {r.engagementScore.toFixed(1)}
                       </span>
                       {r.engagementTier && (
                         <span

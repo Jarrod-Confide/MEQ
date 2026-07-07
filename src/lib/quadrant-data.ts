@@ -9,9 +9,10 @@ export type QuadrantPoint = {
   eventflowContactId: string | null;
   name: string | null;
   company: string | null;
+  email: string | null;
   territory: Territory;
   quality: number; // 0–100 (Unranked / no data → 0)
-  engagement: number; // 0–100 (no activity → 0)
+  engagement: number; // 0–100, 1-decimal (no activity → 0)
 };
 
 export type QuadrantData = {
@@ -31,6 +32,7 @@ export async function fetchQuadrant(): Promise<QuadrantData> {
         id: schema.members.id,
         eventflowContactId: schema.members.eventflowContactId,
         name: schema.members.displayName,
+        email: schema.members.email,
         city: schema.members.closestMajorCity,
         company: schema.memberQuality.company,
         qualityScore: schema.memberQuality.qualityScore,
@@ -50,9 +52,12 @@ export async function fetchQuadrant(): Promise<QuadrantData> {
     eventflowContactId: r.eventflowContactId ?? null,
     name: r.name,
     company: r.company,
+    email: r.email,
     territory: territoryFromCity(r.city),
     quality: r.qualityScore ?? 0,
-    engagement: r.eventflowContactId ? Math.round(engByEf.get(r.eventflowContactId) ?? 0) : 0,
+    engagement: r.eventflowContactId
+      ? Math.round((engByEf.get(r.eventflowContactId) ?? 0) * 10) / 10
+      : 0,
   }));
 
   return { points, total: points.length };
