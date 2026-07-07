@@ -79,7 +79,7 @@ export default async function RegionDetailPage({
         <section className="rounded-lg border border-[#1f2a3d] bg-[#111726]">
           <div className="flex items-center justify-between border-b border-[#1f2a3d] px-5 py-3">
             <h2 className="text-[13px] uppercase tracking-wide text-[#9bb0d4]">Hotspots — engagement trend by city</h2>
-            <span className="text-[11px] text-[#6a7da0]">latest snapshot week vs ~4 weeks prior</span>
+            <span className="text-[11px] text-[#6a7da0]">snapshots taken weekly (Mondays) · latest vs ~4 weeks prior</span>
           </div>
           <div className="h-[380px] overflow-hidden rounded-b-lg bg-[#0b0f17]">
             <RegionTrendMap cities={cityTrends} />

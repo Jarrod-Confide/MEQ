@@ -90,7 +90,7 @@ export default async function MemberDetailPage({
       {trend.length > 1 && (
         <>
           <h2 className="mb-2 mt-8 text-[13px] uppercase tracking-wide text-[#9bb0d4]">
-            Engagement trend (weekly)
+            Engagement trend (snapshots taken weekly, Mondays)
           </h2>
           <div className="rounded-lg border border-[#1f2a3d] bg-[#111726] p-3">
             <LineChart

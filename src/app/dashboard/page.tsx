@@ -92,7 +92,7 @@ export default async function DashboardPage() {
                 <h2 className="m-0 text-[13px] uppercase tracking-wide text-[#9bb0d4]">
                   Scored members & Active+ over time
                 </h2>
-                <span className="text-[11px] text-[#6a7da0]">weekly</span>
+                <span className="text-[11px] text-[#6a7da0]">snapshots weekly (Mondays)</span>
               </div>
               <LineChart
                 labels={d.engagementTrend.map((p) => p.week.slice(5))}
@@ -108,7 +108,7 @@ export default async function DashboardPage() {
                 <h2 className="m-0 text-[13px] uppercase tracking-wide text-[#9bb0d4]">
                   Average engagement over time
                 </h2>
-                <span className="text-[11px] text-[#6a7da0]">weekly</span>
+                <span className="text-[11px] text-[#6a7da0]">snapshots weekly (Mondays)</span>
               </div>
               <LineChart
                 labels={d.engagementTrend.map((p) => p.week.slice(5))}

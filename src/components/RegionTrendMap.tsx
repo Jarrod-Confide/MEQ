@@ -102,7 +102,7 @@ export function RegionTrendMap({ cities }: { cities: CityTrend[] }) {
           <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-full" style={{ background: FLAT }} /> flat</span>
           <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-full" style={{ background: NO_DATA }} /> no history</span>
         </div>
-        <div className="mt-1 text-[10px] text-[#6a7da0]">bubble size = members</div>
+        <div className="mt-1 text-[10px] text-[#6a7da0]">bubble size = members · snapshots taken weekly (Mondays)</div>
       </div>
       <div ref={containerRef} className="h-full w-full" />
     </div>
