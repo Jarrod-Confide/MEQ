@@ -66,7 +66,9 @@ export async function resolveReferrals(
   }
 
   const stats: ReferralStats = { seen: 0, member: 0, staff: 0, unmatched: 0, ignored: 0 };
-  const values: NewMemberReferral[] = [];
+  // Keyed by referredMemberId — merged HubSpot contacts can resolve to the
+  // same canonical member, and a batch upsert can't touch one row twice.
+  const byReferred = new Map<string, NewMemberReferral>();
   const now = new Date();
 
   for (const p of pairs) {
@@ -93,7 +95,7 @@ export async function resolveReferrals(
       stats.unmatched += 1;
     }
 
-    values.push({
+    byReferred.set(p.referredMemberId, {
       referredMemberId: p.referredMemberId,
       referrerMemberId,
       referrerStaffId,
@@ -105,6 +107,7 @@ export async function resolveReferrals(
     });
   }
 
+  const values = [...byReferred.values()];
   const CHUNK = 500;
   for (let i = 0; i < values.length; i += CHUNK) {
     await meqDb
