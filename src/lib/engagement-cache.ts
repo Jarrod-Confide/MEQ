@@ -8,11 +8,10 @@ export const ENGAGEMENT_TAG = "engagement";
  * deploy that changes the shape of EngagementResult/MemberScore (e.g. adding
  * a dimension) would otherwise serve stale, wrong-shaped objects to the new
  * code for up to `revalidate` seconds — a brief post-deploy outage.
- * BUMP THIS whenever the engagement data shape changes. (v2 = events-weighted,
- * 7 dimensions incl. `events` + Depth-as-substance, signals add avgSubstance/
- * connectorActions.)
+ * BUMP THIS whenever the engagement data shape changes. (v3 = member
+ * referrals feed Connector at weight 0.10, signals add `referrals`.)
  */
-export const ENGAGEMENT_CACHE_VERSION = "v2-events-2026-06-17-safedate";
+export const ENGAGEMENT_CACHE_VERSION = "v3-referrals-2026-07-07";
 
 /**
  * Cached wrapper around computeEngagement. Keyed by version + window length,

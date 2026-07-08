@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Nav } from "@/components/Nav";
 import { getRegions, getRegionCityTrends } from "@/lib/region-data";
+import { getStaffByRegion } from "@/lib/staff";
 import { RegionMemberTable } from "@/components/RegionMemberTable";
 import { RegionTrendMap } from "@/components/RegionTrendMap";
 import { WINDOWS } from "@/lib/engagement-cache";
@@ -27,10 +28,14 @@ export default async function RegionDetailPage({
   const { days: daysParam } = await searchParams;
   const days = WINDOWS.some((w) => String(w.days) === daysParam) ? Number(daysParam) : DEFAULT_DAYS;
 
-  const [data, cityTrends] = await Promise.all([getRegions(days), getRegionCityTrends(region)]);
+  const [data, cityTrends, staffByRegion] = await Promise.all([
+    getRegions(days),
+    getRegionCityTrends(region),
+    getStaffByRegion(),
+  ]);
   const summary = data.summaries.find((s) => s.region === region)!;
   const members = data.membersByRegion[region];
-  const cm = TERRITORY_CM[region];
+  const cm = staffByRegion[region]?.join(", ") || TERRITORY_CM[region];
   const color = TERRITORY_COLOR[region];
 
   return (

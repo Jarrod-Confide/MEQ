@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { Nav } from "@/components/Nav";
 import { getRegions, type RegionSummary, type TierName } from "@/lib/region-data";
+import { getStaffByRegion } from "@/lib/staff";
 import { WINDOWS } from "@/lib/engagement-cache";
-import { TERRITORY_LABEL, TERRITORY_CM, TERRITORY_COLOR } from "@/lib/territory";
+import { TERRITORY_LABEL, TERRITORY_CM, TERRITORY_COLOR, type Territory } from "@/lib/territory";
 import { TIER_COLOR } from "@/components/engagement-ui";
 
 export const dynamic = "force-dynamic";
@@ -19,7 +20,9 @@ export default async function RegionsPage({
   const { days: daysParam } = await searchParams;
   const days = WINDOWS.some((w) => String(w.days) === daysParam) ? Number(daysParam) : DEFAULT_DAYS;
 
-  const data = await getRegions(days);
+  const [data, staffByRegion] = await Promise.all([getRegions(days), getStaffByRegion()]);
+  const cmFor = (region: Territory) =>
+    staffByRegion[region]?.join(", ") || TERRITORY_CM[region];
 
   // CM regions first (sorted by per-capita engagement, most-engaged on top), OTHER last.
   const cmRegions = data.summaries
@@ -43,6 +46,9 @@ export default async function RegionsPage({
         <div className="flex items-center gap-3">
           <Link href="/territory/map" className="rounded-md border border-[#2d3d5c] px-3 py-1.5 text-[12px] text-[#8ab4ff] hover:bg-[#1a2238]">
             🗺 Regions map
+          </Link>
+          <Link href="/admin/staff" className="text-[12px] text-[#6a7da0] hover:text-[#8ab4ff]">
+            Manage staff →
           </Link>
         </div>
       </header>
@@ -103,13 +109,13 @@ export default async function RegionsPage({
         {/* Region cards */}
         <section className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {cmRegions.map((s) => (
-            <RegionCard key={s.region} s={s} />
+            <RegionCard key={s.region} s={s} cm={cmFor(s.region)} />
           ))}
         </section>
 
         {other && other.members > 0 && (
           <section>
-            <RegionCard s={other} muted />
+            <RegionCard s={other} cm={cmFor(other.region)} muted />
           </section>
         )}
       </main>
@@ -117,8 +123,7 @@ export default async function RegionsPage({
   );
 }
 
-function RegionCard({ s, muted }: { s: RegionSummary; muted?: boolean }) {
-  const cm = TERRITORY_CM[s.region];
+function RegionCard({ s, cm, muted }: { s: RegionSummary; cm: string | null; muted?: boolean }) {
   const color = TERRITORY_COLOR[s.region];
   return (
     <Link

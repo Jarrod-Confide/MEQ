@@ -3,6 +3,7 @@ import { meqDb, schema } from "../db/meq";
 import { batchReadContacts, batchRead, batchReadAssociations } from "../hubspot";
 import { isFortune2000 } from "../fortune";
 import { computeQuality } from "../quality-score";
+import { resolveReferrals, type ReferralStats } from "./referrals";
 import type { NewMemberQuality } from "../db/schema";
 
 export type QualityStats = {
@@ -13,6 +14,7 @@ export type QualityStats = {
   fortune2000: number;
   highQuality: number;
   joinedAtUpdated: number;
+  referrals: ReferralStats;
 };
 
 const HS_PROPS = [
@@ -30,6 +32,8 @@ const HS_PROPS = [
   "hs_email_click",
   "hs_email_last_click_date",
   "hs_email_last_open_date",
+  // Free-text referrer from the onboarding form → member_referrals.
+  "referred_invited_by",
 ];
 
 function parseDate(s: string | null | undefined): Date | null {
@@ -123,11 +127,17 @@ export async function enrichQuality(): Promise<QualityStats> {
   // Collected joined_at values, applied as a bulk member update after the
   // quality upserts succeed.
   const memberJoinedAt = new Map<string, { joinedAt: Date; source: string }>();
+  // Raw 'Referred/Invited By' text per member, resolved after joined_at lands.
+  const referralPairs: { referredMemberId: string; rawName: string }[] = [];
 
   for (const c of contacts) {
     const member = idToMember.get(c.id);
     if (!member) continue;
     const p = c.properties;
+
+    if (p.referred_invited_by?.trim()) {
+      referralPairs.push({ referredMemberId: member.id, rawName: p.referred_invited_by.trim() });
+    }
 
     // Membership join date: prefer the CISO Society-specific property; fall
     // back to HubSpot's contact createdate.
@@ -270,6 +280,9 @@ export async function enrichQuality(): Promise<QualityStats> {
     joinedAtUpdated += slice.length;
   }
 
+  // Resolve referrers AFTER joined_at updates so referredJoinedAt is fresh.
+  const referrals = await resolveReferrals(referralPairs);
+
   return {
     membersWithHubspot: rows.length,
     hubspotFetched: contacts.length,
@@ -278,5 +291,6 @@ export async function enrichQuality(): Promise<QualityStats> {
     fortune2000,
     highQuality,
     joinedAtUpdated,
+    referrals,
   };
 }

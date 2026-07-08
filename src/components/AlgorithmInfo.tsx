@@ -15,7 +15,7 @@ const DIMENSION_DEF: Record<Dimension, string> = {
   presence:
     "Consistency — the number of distinct days you show up and engage online, rather than one big burst of activity.",
   connector:
-    "Community-building: job postings and member introductions. Valuable glue, but deliberately capped so it doesn't masquerade as subject-matter contribution.",
+    "Community-building: referring new members (the strongest single action), job postings, and member introductions. Staff referrals don't count. Valuable glue, but deliberately capped so it doesn't masquerade as subject-matter contribution.",
 };
 
 const CONCEPTS: { term: string; def: string }[] = [

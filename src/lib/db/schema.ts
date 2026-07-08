@@ -200,8 +200,70 @@ export const memberEngagementSnapshots = pgTable(
   })
 );
 
+/**
+ * Confide staff registry. Staff referrals are tracked but earn no engagement
+ * credit (inviting members is their job), and staff can be assigned to a CM
+ * region so dashboards show who owns each book. Managed at /admin/staff.
+ */
+export const staff = pgTable(
+  "staff",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    name: text("name").notNull(),
+    // Lowercased/normalized full name used for referrer matching.
+    normalizedName: text("normalized_name").notNull(),
+    // Extra normalized spellings seen in free-text fields ("larry whiteside jr").
+    aliases: jsonb("aliases").$type<string[]>().notNull().default([]),
+    region: text("region"), // NE | CENTRAL | WEST | SE | null (no book)
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    staffNormUniq: uniqueIndex("staff_normalized_name_uniq").on(t.normalizedName),
+  })
+);
+
+/**
+ * Who referred each member, resolved from HubSpot's free-text
+ * 'Referred/Invited By' contact property during the daily quality sync.
+ * One row per referred member. status:
+ *   member    → referrer resolved to a member (earns Connector credit)
+ *   staff     → referrer is staff (tracked, no engagement credit)
+ *   unmatched → name didn't resolve (surfaced at /admin/staff)
+ *   ignored   → junk value ("n/a", "self", "linkedin", …)
+ */
+export const memberReferrals = pgTable(
+  "member_referrals",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    referredMemberId: uuid("referred_member_id")
+      .references(() => members.id, { onDelete: "cascade" })
+      .notNull()
+      .unique(),
+    referrerMemberId: uuid("referrer_member_id").references(() => members.id, {
+      onDelete: "set null",
+    }),
+    referrerStaffId: uuid("referrer_staff_id").references(() => staff.id, {
+      onDelete: "set null",
+    }),
+    rawName: text("raw_name").notNull(),
+    normalizedRaw: text("normalized_raw").notNull(),
+    status: text("status").notNull(), // member | staff | unmatched | ignored
+    // Referred member's join date — the dated event that earns (decayed) credit.
+    referredJoinedAt: timestamp("referred_joined_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    referrerIdx: index("referrals_referrer_idx").on(t.referrerMemberId),
+    statusIdx: index("referrals_status_idx").on(t.status),
+  })
+);
+
 export type MemberEngagementSnapshot = typeof memberEngagementSnapshots.$inferSelect;
 export type NewMemberEngagementSnapshot = typeof memberEngagementSnapshots.$inferInsert;
+export type Staff = typeof staff.$inferSelect;
+export type MemberReferral = typeof memberReferrals.$inferSelect;
+export type NewMemberReferral = typeof memberReferrals.$inferInsert;
 
 export type Member = typeof members.$inferSelect;
 export type NewMember = typeof members.$inferInsert;

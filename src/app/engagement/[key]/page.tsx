@@ -152,6 +152,7 @@ export default async function MemberDetailPage({
         {stat("Active days", score.signals.activeDays)}
         {stat("Events attended", score.signals.eventsAttended)}
         {stat("No-shows", score.signals.noShows)}
+        {stat("Members referred", score.signals.referrals ?? 0)}
       </div>
 
       {/* Events */}

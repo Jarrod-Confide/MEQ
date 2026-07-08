@@ -62,7 +62,7 @@ export async function getFullLeaderboard(days: number): Promise<FullLeaderboard>
       signals: {
         posts: 0, replies: 0, reactionsGiven: 0, reactionsReceived: 0,
         repliesReceived: 0, eventsAttended: 0, noShows: 0, activeDays: 0,
-        connectorActions: 0, avgSubstance: 0,
+        connectorActions: 0, referrals: 0, avgSubstance: 0,
       },
       lastActiveAt: null,
     });

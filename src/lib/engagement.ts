@@ -20,22 +20,24 @@ export const WEIGHTS = {
   attended: 50, // in-person event attendance (no virtual split yet)
   noShow: -2,
   spoke: 75, // DEFERRED: no speaker→contact link in EventFlow yet (always 0 today)
+  // Referring a new member — the strongest connector action (connector
+  // messages carry content_weight ≤3, so one referral ≈ 3+ job posts).
+  referral: 10,
 } as const;
 
 /** How the dimensions roll up into the composite total. Must sum to 1.
- * v2 "events-weighted" philosophy: in-person attendance is the single
- * strongest engagement signal for the CISO Society, followed by substantive
- * online contribution. `depth` = quality/substance of discussion (NOT events,
- * which now have their own dimension). `connector` (job posts + member intros)
- * is a deliberate small-weight contributor. All tunable. */
+ * v3 adds member referrals: `connector` (job posts + member intros + member
+ * referrals) doubled to 0.10, funded by small shaves off events/contribution/
+ * reciprocity. In-person attendance remains the single strongest signal.
+ * `depth` = quality/substance of discussion. All tunable. */
 export const DIMENSION_WEIGHTS = {
-  events: 0.32,
-  contribution: 0.2,
-  reciprocity: 0.16,
+  events: 0.3,
+  contribution: 0.18,
+  reciprocity: 0.15,
   depth: 0.12,
   reach: 0.1,
   presence: 0.05,
-  connector: 0.05,
+  connector: 0.1,
 } as const;
 
 /** Depth = evidence-weighted avg substance: Σsubstance / (count + K). Shrinks
@@ -81,6 +83,7 @@ export type SignalCounts = {
   noShows: number;
   activeDays: number;
   connectorActions: number; // job posts + member intros
+  referrals: number; // members they referred (within the window)
   avgSubstance: number; // mean content substance (0–3) across their messages
 };
 
@@ -166,7 +169,7 @@ export async function computeEngagement(
     d != null && !isNaN(new Date(d).getTime());
 
   // Pull everything in parallel. Volumes are small (~5K Slackle rows, ~3K EF).
-  const [contacts, messages, reactionsGiven, reactionsRecv, repliesRecv, attendance, msgScores] =
+  const [contacts, messages, reactionsGiven, reactionsRecv, repliesRecv, attendance, msgScores, referrals] =
     await Promise.all([
       eventflowSql<
         {
@@ -230,6 +233,19 @@ export async function computeEngagement(
       meqSql<
         { message_id: string; content_weight: number; substance: number; is_connector: boolean }[]
       >`SELECT message_id, content_weight, substance, is_connector FROM message_scores`,
+
+      // Member referrals (MEQ DB) → Connector. Staff referrals are excluded at
+      // resolution time (status='staff'); the event date is the referred
+      // member's join date, decayed like every other signal.
+      meqSql<{ eventflow_contact_id: string; referred_joined_at: Date }[]>`
+        SELECT m.eventflow_contact_id, r.referred_joined_at
+        FROM member_referrals r
+        JOIN members m ON m.id = r.referrer_member_id
+        WHERE r.status = 'member'
+          AND m.eventflow_contact_id IS NOT NULL
+          AND r.referred_joined_at IS NOT NULL
+          AND r.referred_joined_at >= ${since.toISOString()}
+          AND r.referred_joined_at <= ${until.toISOString()}`,
     ]);
 
   // message_id → content score (in-memory join; different DB).
@@ -287,6 +303,7 @@ export async function computeEngagement(
     noShows: 0,
     activeDays: 0,
     connectorActions: 0,
+    referrals: 0,
     avgSubstance: 0,
   });
 
@@ -424,6 +441,23 @@ export async function computeEngagement(
     }
   }
 
+  // Member referrals → Connector (referrer gets decayed credit at the
+  // referred member's join date).
+  for (const r of referrals) {
+    const contact = contactById.get(r.eventflow_contact_id);
+    if (!contact || !validDate(r.referred_joined_at)) continue;
+    if (isExcluded(contact.primaryEmail, contact.name)) continue;
+    const key = `c:${contact.id}`;
+    let acc = accs.get(key);
+    if (!acc) {
+      acc = freshAcc(key, contact.name, contact.primaryEmail, contact.hubspotContactId, contact.isMember, true);
+      accs.set(key, acc);
+    }
+    acc.raw.connector += WEIGHTS.referral * decay(r.referred_joined_at);
+    acc.signals.referrals += 1;
+    touch(acc, r.referred_joined_at);
+  }
+
   // Finalize active-days presence + Depth (evidence-weighted avg substance)
   for (const acc of accs.values()) {
     let presenceDays = 0;
@@ -441,7 +475,7 @@ export async function computeEngagement(
   const scored = [...accs.values()].filter((a) => {
     const s = a.signals;
     return (
-      s.posts + s.replies + s.reactionsGiven + s.reactionsReceived + s.repliesReceived + s.eventsAttended + s.noShows > 0
+      s.posts + s.replies + s.reactionsGiven + s.reactionsReceived + s.repliesReceived + s.eventsAttended + s.noShows + s.referrals > 0
     );
   });
 

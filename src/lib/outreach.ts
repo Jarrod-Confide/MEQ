@@ -151,7 +151,7 @@ export async function fetchOutreach(territory: Territory | "ALL" = "ALL"): Promi
 
   const connectors = mapped
     .filter((r) => r.connectorDim >= 20)
-    .map((r) => ({ ...r, reason: `strong connector (job posts / intros)` }))
+    .map((r) => ({ ...r, reason: `strong connector (referrals / job posts / intros)` }))
     .sort((a, b) => b.connectorDim - a.connectorDim);
 
   const neverAttended = mapped

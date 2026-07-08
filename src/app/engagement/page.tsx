@@ -98,15 +98,16 @@ export default async function EngagementPage({
 
         <p className="mb-4 max-w-prose text-[12px] leading-relaxed text-[#6a7da0]">
           Composite of 7 dimensions, events-weighted:{" "}
-          <b className="text-[#9bb0d4]">Events 32%</b> · Contribution 20% ·
-          Reciprocity 16% · Depth 12% · Reach 10% · Presence 5% · Connector 5%.
+          <b className="text-[#9bb0d4]">Events 30%</b> · Contribution 18% ·
+          Reciprocity 15% · Depth 12% · Reach 10% · Connector 10% · Presence 5%.
           Every Slackle message is scored 0–10 for{" "}
           <b className="text-[#9bb0d4]">substance</b> by an LLM rubric tuned to a
           CISO audience, so a detailed answer outweighs &ldquo;thanks!&rdquo; —
           content weight, not volume, drives Contribution &amp; Reciprocity.
           Depth = evidence-smoothed average substance (consistent quality, not a
-          single great post). Connector = job posts + member intros. 90-day
-          decay half-life; dimensions normalized to the 95th-percentile member.
+          single great post). Connector = member referrals + job posts + intros
+          (staff referrals excluded). 90-day decay half-life; dimensions
+          normalized to the 95th-percentile member.
         </p>
 
         <AlgorithmInfo />
