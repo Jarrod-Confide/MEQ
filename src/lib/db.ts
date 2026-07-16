@@ -13,10 +13,16 @@ const globalForDb = global as unknown as {
   slackleSql?: Sql;
 };
 
+// Serverless-friendly pool settings: small per-instance pools (many lambdas
+// share the Supabase pooler's connection budget — EventFlow's is also shared
+// with the EventFlow app) and a fast connect timeout so a saturated pooler
+// fails a request in seconds instead of hanging it to maxDuration (the
+// "whole app locks up" failure mode).
 const opts = {
   ssl: "require" as const,
-  max: 5,
+  max: 2,
   idle_timeout: 20,
+  connect_timeout: 10,
   prepare: false,
 };
 

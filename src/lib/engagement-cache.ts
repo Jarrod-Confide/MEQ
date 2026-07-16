@@ -1,5 +1,6 @@
 import { unstable_cache } from "next/cache";
-import { computeEngagement, type EngagementResult } from "./engagement";
+import type { EngagementResult } from "./engagement";
+import { getEngagementStored } from "./engagement-store";
 
 export const ENGAGEMENT_TAG = "engagement";
 
@@ -14,13 +15,15 @@ export const ENGAGEMENT_TAG = "engagement";
 export const ENGAGEMENT_CACHE_VERSION = "v3-referrals-2026-07-07";
 
 /**
- * Cached wrapper around computeEngagement. Keyed by version + window length,
- * tagged so the "Refresh now" button can bust every window at once via
- * revalidateTag(ENGAGEMENT_TAG). 5-minute auto-revalidate otherwise.
+ * Cached read of the MATERIALIZED leaderboard (engagement_cache table) —
+ * requests never run computeEngagement themselves; the refresh cron does
+ * (see engagement-store.ts for why). Keyed by version + window length,
+ * tagged so the refresh cron / "Refresh now" button can bust every window
+ * at once via revalidateTag(ENGAGEMENT_TAG). 5-minute auto-revalidate.
  */
 export function getEngagement(days: number): Promise<EngagementResult> {
   const cached = unstable_cache(
-    () => computeEngagement({ sinceDays: days }),
+    () => getEngagementStored(days),
     ["engagement", ENGAGEMENT_CACHE_VERSION, String(days)],
     { revalidate: 300, tags: [ENGAGEMENT_TAG] }
   );

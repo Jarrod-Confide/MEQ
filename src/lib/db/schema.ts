@@ -259,6 +259,21 @@ export const memberReferrals = pgTable(
   })
 );
 
+/**
+ * Materialized engagement leaderboard, one row per time window (30/90/180/
+ * 9999 days). Refreshed by the /api/cron/refresh-engagement cron (and the
+ * "Refresh now" button) — NEVER computed in the request path. This is what
+ * keeps rapid tab-switching from stampeding computeEngagement's 7-query,
+ * 3-database fan-out and exhausting the Supabase poolers (the "app locks up"
+ * incidents of 2026-06/07).
+ */
+export const engagementCache = pgTable("engagement_cache", {
+  windowDays: integer("window_days").primaryKey(),
+  payload: jsonb("payload").notNull(), // EngagementResult
+  computedAt: timestamp("computed_at", { withTimezone: true }).notNull(),
+  durationMs: integer("duration_ms"),
+});
+
 export type MemberEngagementSnapshot = typeof memberEngagementSnapshots.$inferSelect;
 export type NewMemberEngagementSnapshot = typeof memberEngagementSnapshots.$inferInsert;
 export type Staff = typeof staff.$inferSelect;
