@@ -43,23 +43,13 @@ export async function GET(request: Request) {
   await step("readStored(30) full", () => readStoredEngagement(30));
   await step("roster select (drizzle)", () => meqDb.select({ id: schema.members.id }).from(schema.members).limit(5));
   await step("getFullLeaderboard(90)", () => getFullLeaderboard(90));
-  // fetchDashboard split in half to isolate the hang:
-  await step("dash raw queries (parallel)", () =>
-    Promise.all([
-      meqSql`SELECT COUNT(*)::int AS total FROM members`,
-      meqSql`SELECT to_char(date_trunc('month', joined_at), 'YYYY-MM') AS month, COUNT(*)::int FROM members WHERE joined_at >= date_trunc('month', NOW() - INTERVAL '11 months') GROUP BY 1`,
-      meqSql`SELECT COALESCE(quality_tier,'Unranked') tier, COUNT(*)::int n FROM member_quality GROUP BY 1`,
-      meqSql`SELECT closest_major_city, COUNT(*)::int FROM members WHERE closest_major_city IS NOT NULL GROUP BY 1 ORDER BY 2 DESC LIMIT 5`,
-      meqSql`SELECT company, COUNT(*)::int FROM member_quality WHERE company IS NOT NULL GROUP BY 1 ORDER BY 2 DESC LIMIT 5`,
-      meqSql`SELECT COUNT(*) FILTER (WHERE is_fortune_2000)::int f2000 FROM member_quality`,
-      eventflowSql`SELECT COUNT(DISTINCT a.contact_id)::int n FROM attendees a JOIN events e ON a.event_id = e.id WHERE a.status='attended' AND e.starts_at >= NOW() - INTERVAL '30 days'`,
-      meqSql`SELECT week_start, COUNT(*)::int FROM member_engagement_snapshots GROUP BY week_start`,
-    ])
-  );
+  // NOTE: an earlier probe step ran 8 queries in ONE Promise.all to prove the
+  // pool-wedge mechanism — it reliably hung. Do not reintroduce wide batches.
   await step("eng90 + eng30 (parallel unstable_cache)", () =>
     Promise.all([getEngagement(90), getEngagement(30)])
   );
   await step("fetchDashboard", () => fetchDashboard());
+  await step("fetchDashboard (again)", () => fetchDashboard());
 
   return NextResponse.json({ ok: true, timings });
 }
