@@ -5,6 +5,7 @@ import { getEngagement } from "@/lib/engagement-cache";
 import { Nav } from "@/components/Nav";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 export default async function QualityPage() {
   const [data, engagement] = await Promise.all([fetchQuality(), getEngagement(90)]);

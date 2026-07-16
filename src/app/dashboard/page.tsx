@@ -6,6 +6,7 @@ import { Nav } from "@/components/Nav";
 import { LineChart, ChartLegend } from "@/components/charts";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 export const revalidate = 300;
 
 export default async function DashboardPage() {
