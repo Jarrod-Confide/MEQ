@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { meqSql, meqDb, schema } from "@/lib/db/meq";
+import { eventflowSql, slackleSql } from "@/lib/db";
 import { readStoredEngagement } from "@/lib/engagement-store";
 import { getFullLeaderboard } from "@/lib/leaderboard";
 import { fetchDashboard } from "@/lib/dashboard-data";
@@ -6,7 +8,10 @@ import { fetchDashboard } from "@/lib/dashboard-data";
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
 
-/** TEMPORARY diagnostics — times each production data path. CRON_SECRET-gated. */
+const STEP_TIMEOUT_MS = 8000;
+
+/** TEMPORARY diagnostics — per-step timings with individual timeouts so a
+ * hang identifies itself instead of killing the function. CRON_SECRET-gated. */
 export async function GET(request: Request) {
   const secret = process.env.CRON_SECRET;
   const auth = request.headers.get("authorization");
@@ -14,24 +19,30 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const timings: Record<string, number | string> = {};
-  const time = async (label: string, fn: () => Promise<unknown>) => {
+  const timings: Record<string, string> = {};
+  const step = async (label: string, fn: () => Promise<unknown>) => {
     const t0 = Date.now();
     try {
-      const r = await fn();
-      timings[label] = Date.now() - t0;
-      return r;
+      await Promise.race([
+        fn(),
+        new Promise((_, rej) => setTimeout(() => rej(new Error("STEP_TIMEOUT")), STEP_TIMEOUT_MS)),
+      ]);
+      timings[label] = `${Date.now() - t0}ms`;
     } catch (e) {
-      timings[label] = `ERROR after ${Date.now() - t0}ms: ${String(e).slice(0, 200)}`;
-      return null;
+      const msg = e instanceof Error && e.message === "STEP_TIMEOUT" ? "HUNG >8s" : String(e).slice(0, 160);
+      timings[label] = `FAIL after ${Date.now() - t0}ms — ${msg}`;
     }
   };
 
-  const stored = await time("readStored(90)", () => readStoredEngagement(90));
-  timings["payloadKB(90)"] = stored ? Math.round(JSON.stringify(stored).length / 1024) : "null";
-  await time("readStored(30)", () => readStoredEngagement(30));
-  await time("getFullLeaderboard(90)", () => getFullLeaderboard(90));
-  await time("fetchDashboard", () => fetchDashboard());
+  await step("meq SELECT 1", () => meqSql`SELECT 1`);
+  await step("eventflow SELECT 1", () => eventflowSql`SELECT 1`);
+  await step("slackle SELECT 1", () => slackleSql`SELECT 1`);
+  await step("payload size (90)", () => meqSql`SELECT octet_length(payload::text) FROM engagement_cache WHERE window_days = 90`);
+  await step("readStored(90) full", () => readStoredEngagement(90));
+  await step("readStored(30) full", () => readStoredEngagement(30));
+  await step("roster select (drizzle)", () => meqDb.select({ id: schema.members.id }).from(schema.members).limit(5));
+  await step("getFullLeaderboard(90)", () => getFullLeaderboard(90));
+  await step("fetchDashboard", () => fetchDashboard());
 
   return NextResponse.json({ ok: true, timings });
 }
