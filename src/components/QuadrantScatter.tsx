@@ -268,7 +268,7 @@ export function QuadrantScatter({ points }: { points: QuadrantPoint[] }) {
                       <td className="px-4 py-1.5 tabular-nums text-[#6a7da0]">{i + 1}</td>
                       <td className="px-2 py-1.5">
                         {p.eventflowContactId ? (
-                          <Link href={`/engagement/${encodeURIComponent("c:" + p.eventflowContactId)}`} className="text-[#cfdaee] hover:text-white hover:underline">
+                          <Link prefetch={false} href={`/engagement/${encodeURIComponent("c:" + p.eventflowContactId)}`} className="text-[#cfdaee] hover:text-white hover:underline">
                             {p.name ?? "—"}
                           </Link>
                         ) : (

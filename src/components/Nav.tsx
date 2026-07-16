@@ -16,6 +16,7 @@ export function Nav({ current }: { current: string }) {
       {NAV_ITEMS.map((n) => (
         <Link
           key={n.href}
+          prefetch={false}
           href={n.href}
           className={
             n.href === current

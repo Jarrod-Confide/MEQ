@@ -188,6 +188,7 @@ export function QualityTable({ rows }: { rows: QualityRow[] }) {
                 </td>
                 <td className="px-3 py-2">
                   <Link
+                    prefetch={false}
                     href={`/engagement/${encodeURIComponent("c:" + r.memberId)}`}
                     className="text-[#cfdaee] hover:text-[#8ab4ff] hover:underline"
                   >

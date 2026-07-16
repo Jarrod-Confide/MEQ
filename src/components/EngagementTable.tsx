@@ -137,6 +137,7 @@ export function EngagementTable({ members }: { members: MemberScore[] }) {
                     </span>
                   )}
                   <Link
+                    prefetch={false}
                     href={`/engagement/${encodeURIComponent(m.key)}`}
                     className="text-[#cfdaee] hover:text-[#8ab4ff] hover:underline"
                   >

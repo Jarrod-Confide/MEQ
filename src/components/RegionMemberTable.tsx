@@ -86,7 +86,7 @@ export function RegionMemberTable({ members }: { members: RegionMember[] }) {
             <tr key={m.key} className="border-t border-[#141c2b] hover:bg-[#0d121e]">
               <td className="px-5 py-2 tabular-nums text-[#6a7da0]">{rankByKey.get(m.key)}</td>
               <td className="px-3 py-2">
-                <Link href={`/engagement/${encodeURIComponent(m.key)}`} className="text-[#cfdaee] hover:text-white hover:underline">
+                <Link prefetch={false} href={`/engagement/${encodeURIComponent(m.key)}`} className="text-[#cfdaee] hover:text-white hover:underline">
                   {m.name}
                 </Link>
               </td>

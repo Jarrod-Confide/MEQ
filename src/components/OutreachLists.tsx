@@ -145,7 +145,7 @@ export function OutreachLists({ segments }: { segments: OutreachSegment[] }) {
                       <td className="px-3 py-2 tabular-nums text-[#6a7da0]">{i + 1}</td>
                       <td className="px-3 py-2">
                         {r.memberId ? (
-                          <Link href={`/engagement/${encodeURIComponent("c:" + r.memberId)}`} className="text-[#cfdaee] hover:text-[#8ab4ff] hover:underline">
+                          <Link prefetch={false} href={`/engagement/${encodeURIComponent("c:" + r.memberId)}`} className="text-[#cfdaee] hover:text-[#8ab4ff] hover:underline">
                             {r.name ?? "—"}
                           </Link>
                         ) : (
