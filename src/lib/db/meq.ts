@@ -14,7 +14,7 @@ const client =
   globalForMeq.meqClient ??
   postgres(process.env.MEQ_DATABASE_URL, {
     ssl: "require",
-    max: 2, // small per-lambda pool — see db.ts opts comment
+    max: 5, // don't lower: max 2 wedged parallel query batches — see db.ts
     idle_timeout: 20,
     connect_timeout: 10,
     prepare: false, // transaction pooler
