@@ -29,18 +29,11 @@ export type DashboardData = {
 };
 
 export async function fetchDashboard(): Promise<DashboardData> {
-  const [
-    counts,
-    monthly,
-    qualityTiers,
-    metros,
-    companies,
-    composition,
-    eventAttendees,
-    trend,
-    eng90,
-    eng30,
-  ] = await Promise.all([
+  // Bounded waves of ≤4 concurrent queries — a single wide Promise.all (10+)
+  // deterministically wedged the postgres-js pool against the Supabase
+  // transaction pooler in the lambda runtime (dashboard hangs, 2026-07-16).
+  // Every stable page keeps per-pool concurrency ≤ ~5; so does this now.
+  const [counts, monthly, qualityTiers, metros] = await Promise.all([
     meqSql<
       {
         total: number;
@@ -80,6 +73,9 @@ export async function fetchDashboard(): Promise<DashboardData> {
       WHERE closest_major_city IS NOT NULL AND closest_major_city <> ''
       GROUP BY 1 ORDER BY count DESC LIMIT 5
     `,
+  ]);
+
+  const [companies, composition, eventAttendees, trend] = await Promise.all([
     meqSql<{ name: string; count: number }[]>`
       SELECT company AS name, COUNT(*)::int AS count
       FROM member_quality
@@ -116,9 +112,9 @@ export async function fetchDashboard(): Promise<DashboardData> {
       FROM member_engagement_snapshots
       GROUP BY week_start ORDER BY week_start
     `,
-    getEngagement(90),
-    getEngagement(30),
   ]);
+
+  const [eng90, eng30] = await Promise.all([getEngagement(90), getEngagement(30)]);
 
   const c = counts[0];
 
