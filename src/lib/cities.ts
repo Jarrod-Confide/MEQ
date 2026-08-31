@@ -133,6 +133,8 @@ export const CITY_GEO: Record<string, GeoCity> = Object.fromEntries(
       ["Quebec City",       46.8139,  -71.208,  "CA", "QC"],
       ["Copenhagen",        55.6761,   12.5683, "DK"],
       ["Istanbul",          41.0082,   28.9784, "TR"],
+      ["Buffalo",           42.8864,  -78.8784, "US", "NY"],
+      ["Edmonton",          53.5461, -113.4938, "CA", "AB"],
     ] as const
   ).map(([name, lat, lng, country, state]) => [
     name,

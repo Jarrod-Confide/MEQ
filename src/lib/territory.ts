@@ -49,7 +49,8 @@ export const STATE_TO_REGION: Record<string, Territory> = {
   // Northeast — Angelica
   VA: "NE", MD: "NE", DC: "NE", DE: "NE", WV: "NE", NY: "NE", NJ: "NE",
   CT: "NE", RI: "NE", MA: "NE", NH: "NE", VT: "NE", ME: "NE", PA: "NE",
-  OH: "NE", MI: "NE",
+  OH: "NE",
+  MI: "CENTRAL", // moved from NE per Jarrod, 2026-08-31
   // Central — Brandy  (NE = Nebraska)
   TX: "CENTRAL", OK: "CENTRAL", LA: "CENTRAL", AR: "CENTRAL", KS: "CENTRAL",
   MO: "CENTRAL", IL: "CENTRAL", IA: "CENTRAL", NE: "CENTRAL", ND: "CENTRAL",
