@@ -43,9 +43,10 @@ export function RegionChoropleth({ points }: { points: MemberDot[] }) {
 
       const map = L.map(containerRef.current, { minZoom: 3, maxZoom: 7 }).setView([38, -96], 4);
       mapRef.current = map;
-      L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png", {
-        attribution: "© OpenStreetMap © CARTO",
-        subdomains: "abcd",
+      // OSM tiles (keyless) dark-toned by the global .leaflet-tile CSS filter.
+      // CARTO's basemap CDN now requires an API key and watermarks tiles.
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: "© OpenStreetMap",
         maxZoom: 8,
       }).addTo(map);
 

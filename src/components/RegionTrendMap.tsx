@@ -49,9 +49,10 @@ export function RegionTrendMap({ cities }: { cities: CityTrend[] }) {
 
       const map = L.map(containerRef.current, { minZoom: 2, maxZoom: 8 });
       mapRef.current = map;
-      L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png", {
-        attribution: "© OpenStreetMap © CARTO",
-        subdomains: "abcd",
+      // OSM tiles (keyless) dark-toned by the global .leaflet-tile CSS filter.
+      // CARTO's basemap CDN now requires an API key and watermarks tiles.
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: "© OpenStreetMap",
         maxZoom: 8,
       }).addTo(map);
 
