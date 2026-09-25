@@ -1,7 +1,8 @@
 import { auth } from "@/lib/auth/config";
 import { NextResponse } from "next/server";
 
-const PUBLIC_PATHS = ["/sign-in", "/api/auth", "/api/cron", "/api/health"];
+// /api/v1 is bearer-authenticated per route (src/lib/api-auth.ts).
+const PUBLIC_PATHS = ["/sign-in", "/api/auth", "/api/cron", "/api/health", "/api/v1"];
 
 export default auth((req) => {
   const { pathname } = req.nextUrl;

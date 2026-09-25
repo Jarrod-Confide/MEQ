@@ -99,6 +99,13 @@ export type MemberScore = {
   tier: Tier;
   signals: SignalCounts;
   lastActiveAt: string | null;
+  /**
+   * Last Slack post or reaction only (2026-09-25, for EventFlow's check-in
+   * card: "active in Slack 3 days ago"). lastActiveAt also counts events and
+   * referrals, so it can't be labelled Slack. Optional: payloads cached
+   * before this field existed lack it until the next refresh.
+   */
+  lastSlackAt?: string | null;
   // Decorated server-side from MEQ's member_quality (cross-pollination).
   qualityScore?: number | null;
   qualityTier?: string | null;
@@ -135,6 +142,7 @@ type Acc = {
   signals: SignalCounts;
   activeDays: Map<string, number>; // dayKey → decay factor for that day
   lastActiveMs: number;
+  lastSlackMs: number;
   substanceSum: number; // for avgSubstance
   substanceCount: number;
 };
@@ -349,6 +357,7 @@ export async function computeEngagement(
       signals: blankSignals(),
       activeDays: new Map(),
       lastActiveMs: 0,
+      lastSlackMs: 0,
       substanceSum: 0,
       substanceCount: 0,
     };
@@ -357,6 +366,11 @@ export async function computeEngagement(
   const touch = (acc: Acc, d: Date | string) => {
     const ms = new Date(d).getTime();
     if (ms > acc.lastActiveMs) acc.lastActiveMs = ms;
+  };
+  // Slack-only recency (posts and reactions given), alongside touch().
+  const touchSlack = (acc: Acc, d: Date | string) => {
+    const ms = new Date(d).getTime();
+    if (ms > acc.lastSlackMs) acc.lastSlackMs = ms;
   };
 
   // Messages → content-weighted Contribution (top-level posts) /
@@ -393,6 +407,7 @@ export async function computeEngagement(
       if (dec > existing) acc.activeDays.set(dk, dec);
     }
     touch(acc, m.posted_at);
+    touchSlack(acc, m.posted_at);
   }
 
   // Reactions given → Reciprocity
@@ -402,6 +417,7 @@ export async function computeEngagement(
     acc.raw.reciprocity += WEIGHTS.reactionGiven * decay(r.created_at);
     acc.signals.reactionsGiven += 1;
     touch(acc, r.created_at);
+    touchSlack(acc, r.created_at);
   }
 
   // Reactions received → Reach
@@ -506,6 +522,7 @@ export async function computeEngagement(
       tier: "Dormant" as Tier, // assigned below
       signals: a.signals,
       lastActiveAt: a.lastActiveMs ? safeIso(a.lastActiveMs) : null,
+      lastSlackAt: a.lastSlackMs ? safeIso(a.lastSlackMs) : null,
     };
   });
 
