@@ -194,7 +194,10 @@ export async function computeEngagement(
       >`SELECT id, hubspot_contact_id, first_name, last_name, is_member,
                lower(email) AS email, lower(personal_email) AS personal_email,
                lower(work_email) AS work_email, additional_emails
-        FROM contacts`,
+        FROM contacts
+        -- Skip retired contacts: a merge loser often shares the survivor's
+        -- email, and email lookup is first-wins, so it could steal credit.
+        WHERE deleted_at IS NULL`,
 
       slackleSql<
         {

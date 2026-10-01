@@ -12,7 +12,7 @@ export const ENGAGEMENT_TAG = "engagement";
  * BUMP THIS whenever the engagement data shape changes. (v3 = member
  * referrals feed Connector at weight 0.10, signals add `referrals`.)
  */
-export const ENGAGEMENT_CACHE_VERSION = "v3-referrals-2026-07-07";
+export const ENGAGEMENT_CACHE_VERSION = "v3-referrals-2026-10-01-live-contacts";
 
 /**
  * Cached read of the MATERIALIZED leaderboard (engagement_cache table) —

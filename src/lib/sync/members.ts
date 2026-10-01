@@ -66,7 +66,10 @@ export async function syncMembers(): Promise<SyncStats> {
                additional_emails, first_name, last_name, company, job_title,
                membership_type, is_member, closest_major_city
         FROM contacts
-        WHERE is_member = true`,
+        -- deleted_at = retired in EventFlow (deleted in HubSpot, or the loser
+        -- of a contact merge). Skipping them lets the purge below drop them,
+        -- so merged duplicates leave MEQ instead of lingering as phantoms.
+        WHERE is_member = true AND deleted_at IS NULL`,
       slackleSql<
         { email: string | null; slack_user_id: string | null; circle_member_id: string | null }[]
       >`SELECT lower(email) AS email, slack_user_id, circle_member_id
