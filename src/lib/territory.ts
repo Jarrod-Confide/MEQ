@@ -6,9 +6,13 @@ import { CITY_GEO } from "./cities";
  * quadrant" model — regions are now assigned by a member's home state, not by
  * coordinates, so they line up exactly with each CM's book of business.
  *
- * Source of truth: the CM regions doc. Anything we can't place in a region
- * (international members, Canadian provinces outside BC/AB, unmapped cities)
- * falls into OTHER.
+ * Source of truth: the CM regions doc. Anything we can't place in one of the
+ * four US regions (international members, Canadian provinces outside BC/AB,
+ * unmapped cities) is the GLOBAL region.
+ *
+ * The code for Global stays "OTHER": it is stored in snapshot history and in
+ * EventFlow's database (mirrored from /api/v1/member-stats), so renaming it
+ * would break that contract. Only the label changed.
  */
 export const TERRITORIES = ["NE", "CENTRAL", "WEST", "SE", "OTHER"] as const;
 export type Territory = (typeof TERRITORIES)[number];
@@ -18,16 +22,19 @@ export const TERRITORY_LABEL: Record<Territory, string> = {
   CENTRAL: "Central",
   WEST: "West",
   SE: "Southeast",
-  OTHER: "Other / Intl",
+  OTHER: "Global",
 };
 
-/** The community manager who owns each region (OTHER is unassigned). */
+/**
+ * Fallback CM names, shown only when no staff member is assigned to a region
+ * in /admin/staff (the staff table is the source of truth).
+ */
 export const TERRITORY_CM: Record<Territory, string | null> = {
-  NE: "Angelica",
-  CENTRAL: "Brandy",
-  WEST: "Bridget",
-  SE: "Sean",
-  OTHER: null,
+  NE: "Anjelica Orsini",
+  CENTRAL: "Brandy Hardy",
+  WEST: "Madi Vorbrich",
+  SE: "Sean Navarro",
+  OTHER: "Sean Navarro",
 };
 
 export const TERRITORY_ORDER: Territory[] = ["NE", "CENTRAL", "WEST", "SE", "OTHER"];
@@ -37,7 +44,7 @@ export const TERRITORY_COLOR: Record<Territory, string> = {
   CENTRAL: "#facc15",
   WEST: "#a78bfa",
   SE: "#22c55e",
-  OTHER: "#6a7da0",
+  OTHER: "#2dd4bf",
 };
 
 /**

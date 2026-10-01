@@ -12,34 +12,35 @@ function bust() {
   revalidatePath("/admin/staff");
 }
 
+/** The region checkboxes submitted with the form, validated. */
+function regionsFrom(formData: FormData): string[] {
+  return formData
+    .getAll("regions")
+    .map(String)
+    .filter((r) => (TERRITORIES as readonly string[]).includes(r));
+}
+
 export async function addStaff(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
   if (!name) return;
   const aliasesRaw = String(formData.get("aliases") ?? "").trim();
-  const region = String(formData.get("region") ?? "");
   const aliases = aliasesRaw
     ? aliasesRaw.split(",").map((a) => a.trim()).filter(Boolean)
     : [];
 
   await meqDb
     .insert(schema.staff)
-    .values({
-      name,
-      normalizedName: normalizeName(name),
-      aliases,
-      region: (TERRITORIES as readonly string[]).includes(region) ? region : null,
-    })
+    .values({ name, normalizedName: normalizeName(name), aliases, regions: regionsFrom(formData) })
     .onConflictDoNothing();
   bust();
 }
 
-export async function updateStaffRegion(formData: FormData) {
+export async function updateStaffRegions(formData: FormData) {
   const id = String(formData.get("id") ?? "");
-  const region = String(formData.get("region") ?? "");
   if (!id) return;
   await meqDb
     .update(schema.staff)
-    .set({ region: (TERRITORIES as readonly string[]).includes(region) ? region : null })
+    .set({ regions: regionsFrom(formData) })
     .where(eq(schema.staff.id, id));
   bust();
 }

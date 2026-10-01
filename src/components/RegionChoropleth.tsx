@@ -6,7 +6,6 @@ import type { FeatureCollection, Geometry } from "geojson";
 import {
   TERRITORY_COLOR,
   TERRITORY_LABEL,
-  TERRITORY_CM,
   TERRITORY_ORDER,
   type Territory,
 } from "@/lib/territory";
@@ -21,9 +20,16 @@ type StateProps = { code: string; name: string; region: Territory };
  * US choropleth colored by CM region — each state filled by which manager owns
  * it (state → region baked into /regions-us-states.geojson). Member cities are
  * overlaid as neutral dots so you can see ownership and density at once.
- * Alaska & Hawaii are colored (West); Canadian BC/AB are West but not drawn.
+ * Alaska & Hawaii are colored (West); Canadian BC/AB are West but not drawn;
+ * the Global region (everything outside the US regions) has no polygons.
  */
-export function RegionChoropleth({ points }: { points: MemberDot[] }) {
+export function RegionChoropleth({
+  points,
+  cmByRegion,
+}: {
+  points: MemberDot[];
+  cmByRegion: Record<Territory, string | null>;
+}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<unknown>(null);
 
@@ -65,7 +71,7 @@ export function RegionChoropleth({ points }: { points: MemberDot[] }) {
         }),
         onEachFeature: (feature, lyr: LT.Layer) => {
           const { code, name, region } = feature.properties;
-          const cm = TERRITORY_CM[region];
+          const cm = cmByRegion[region];
           lyr.bindTooltip(
             `<b>${name}</b> (${code})<br/><span style="color:#9bb0d4">${TERRITORY_LABEL[region]}${cm ? ` · CM ${cm}` : ""}</span>`,
             { sticky: true }
@@ -113,22 +119,22 @@ export function RegionChoropleth({ points }: { points: MemberDot[] }) {
         mapRef.current = null;
       }
     };
-  }, [points]);
+  }, [points, cmByRegion]);
 
   return (
     <div className="relative h-full w-full bg-[#0b0f17]">
       <div className="absolute bottom-3 left-3 z-[1000] rounded-md border border-[#2d3d5c] bg-[#0b0f17]/95 px-3 py-2 shadow-lg">
         <div className="mb-1 text-[10px] uppercase tracking-wide text-[#6a7da0]">CM region</div>
         <div className="flex flex-col gap-1">
-          {TERRITORY_ORDER.filter((t) => t !== "OTHER").map((t) => (
+          {TERRITORY_ORDER.map((t) => (
             <span key={t} className="flex items-center gap-1.5 text-[11px] text-[#cfdaee]">
               <span className="inline-block h-3 w-3 rounded-sm" style={{ background: TERRITORY_COLOR[t] }} />
               {TERRITORY_LABEL[t]}
-              {TERRITORY_CM[t] ? ` · ${TERRITORY_CM[t]}` : ""}
+              {cmByRegion[t] ? ` · ${cmByRegion[t]}` : ""}
             </span>
           ))}
-          <span className="mt-1 max-w-[220px] text-[10px] text-[#6a7da0]">
-            AK &amp; HI → West. Canada BC &amp; AB → West (not drawn). White dots = member locations.
+          <span className="mt-1 max-w-[240px] text-[10px] text-[#6a7da0]">
+            AK &amp; HI → West. Canada BC &amp; AB → West. Global = everyone outside the four US regions (international, rest of Canada). White dots = member locations.
           </span>
         </div>
       </div>

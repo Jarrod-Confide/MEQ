@@ -214,7 +214,13 @@ export const staff = pgTable(
     normalizedName: text("normalized_name").notNull(),
     // Extra normalized spellings seen in free-text fields ("larry whiteside jr").
     aliases: jsonb("aliases").$type<string[]>().notNull().default([]),
-    region: text("region"), // NE | CENTRAL | WEST | SE | null (no book)
+    // DEPRECATED (single region) — superseded by `regions`; drop in a later
+    // migration once nothing reads it.
+    region: text("region"),
+    // Regions this staff member manages (a CM can own more than one, e.g.
+    // Sean = SE + Global). Empty = staff who own no book; they still matter,
+    // because staff referrals earn no engagement credit.
+    regions: jsonb("regions").$type<string[]>().notNull().default([]),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => ({

@@ -2,12 +2,25 @@ import Link from "next/link";
 import { sql } from "drizzle-orm";
 import { Nav } from "@/components/Nav";
 import { meqDb, meqSql, schema } from "@/lib/db/meq";
-import { TERRITORY_LABEL, TERRITORY_ORDER } from "@/lib/territory";
-import { addStaff, updateStaffRegion, deleteStaff } from "./actions";
+import { TERRITORY_LABEL, TERRITORY_ORDER, TERRITORY_COLOR } from "@/lib/territory";
+import { SubmitButton } from "@/components/SubmitButton";
+import { addStaff, updateStaffRegions, deleteStaff } from "./actions";
 
 export const dynamic = "force-dynamic";
 
-const REGION_OPTIONS = TERRITORY_ORDER.filter((t) => t !== "OTHER");
+function RegionChecks({ selected }: { selected: string[] }) {
+  return (
+    <div className="flex flex-wrap gap-x-3 gap-y-1">
+      {TERRITORY_ORDER.map((t) => (
+        <label key={t} className="flex cursor-pointer items-center gap-1.5 text-[12px] text-[#cfdaee]">
+          <input type="checkbox" name="regions" value={t} defaultChecked={selected.includes(t)} className="accent-[#8ab4ff]" />
+          <span className="inline-block h-2 w-2 rounded-full" style={{ background: TERRITORY_COLOR[t] }} />
+          {TERRITORY_LABEL[t]}
+        </label>
+      ))}
+    </div>
+  );
+}
 
 export default async function StaffAdminPage() {
   const [staffRows, unmatched, referralCounts] = await Promise.all([
@@ -49,7 +62,7 @@ export default async function StaffAdminPage() {
           <div className="border-b border-[#1f2a3d] px-5 py-3">
             <h2 className="text-[13px] uppercase tracking-wide text-[#9bb0d4]">Staff</h2>
             <p className="m-0 mt-1 text-[11px] text-[#6a7da0]">
-              Staff referrals are excluded from engagement scoring. Region assignment shows on the region dashboards. Aliases are extra spellings seen in the onboarding form (comma-separated). Changes apply on the next daily sync (or a manual sync).
+              List <b className="text-[#9bb0d4]">everyone at Confide</b> who might refer members, including staff who don&apos;t manage a region — anyone not listed here earns member engagement credit for their referrals. Tick regions to make someone a region&apos;s community manager (a person can manage several). Aliases are extra spellings seen in the onboarding form (comma-separated). Referral changes apply on the next daily sync.
             </p>
           </div>
 
@@ -59,7 +72,7 @@ export default async function StaffAdminPage() {
                 <tr className="text-left text-[11px] uppercase tracking-wide text-[#6a7da0]">
                   <th className="px-5 py-2 font-medium">Name</th>
                   <th className="px-3 py-2 font-medium">Aliases</th>
-                  <th className="px-3 py-2 font-medium">Region</th>
+                  <th className="px-3 py-2 font-medium">Manages regions</th>
                   <th className="px-3 py-2 font-medium"></th>
                 </tr>
               </thead>
@@ -72,21 +85,16 @@ export default async function StaffAdminPage() {
                     <td className="px-5 py-2 text-[#cfdaee]">{s.name}</td>
                     <td className="px-3 py-2 text-[12px] text-[#9bb0d4]">{(s.aliases ?? []).join(", ") || "—"}</td>
                     <td className="px-3 py-2">
-                      <form action={updateStaffRegion} className="flex items-center gap-2">
+                      <form action={updateStaffRegions} className="flex flex-wrap items-center gap-3">
                         <input type="hidden" name="id" value={s.id} />
-                        <select name="region" defaultValue={s.region ?? ""} className="rounded border border-[#2d3d5c] bg-[#0b0f17] px-2 py-1 text-[12px] text-white">
-                          <option value="">— none —</option>
-                          {REGION_OPTIONS.map((t) => (
-                            <option key={t} value={t}>{TERRITORY_LABEL[t]}</option>
-                          ))}
-                        </select>
-                        <button type="submit" className="rounded-md border border-[#2d3d5c] px-2 py-1 text-[11px] text-[#8ab4ff] hover:bg-[#1a2238]">Save</button>
+                        <RegionChecks selected={s.regions ?? []} />
+                        <SubmitButton pendingText="Saving…" className="rounded-md border border-[#2d3d5c] px-2 py-1 text-[11px] text-[#8ab4ff] hover:bg-[#1a2238]">Save</SubmitButton>
                       </form>
                     </td>
                     <td className="px-3 py-2 text-right">
                       <form action={deleteStaff}>
                         <input type="hidden" name="id" value={s.id} />
-                        <button type="submit" className="rounded-md border border-[#3d2d2d] px-2 py-1 text-[11px] text-[#f87171] hover:bg-[#2a1a1a]">Remove</button>
+                        <SubmitButton pendingText="Removing…" className="rounded-md border border-[#3d2d2d] px-2 py-1 text-[11px] text-[#f87171] hover:bg-[#2a1a1a]">Remove</SubmitButton>
                       </form>
                     </td>
                   </tr>
@@ -105,16 +113,11 @@ export default async function StaffAdminPage() {
               Aliases (comma-separated)
               <input name="aliases" placeholder="larry whiteside jr, larry" className="mt-1 block w-72 rounded-md border border-[#2d3d5c] bg-[#0b0f17] px-2.5 py-1.5 text-[13px] text-white placeholder:text-[#6a7da0]" />
             </label>
-            <label className="text-[11px] uppercase tracking-wide text-[#9bb0d4]">
-              Region
-              <select name="region" defaultValue="" className="mt-1 block rounded-md border border-[#2d3d5c] bg-[#0b0f17] px-2 py-1.5 text-[13px] text-white">
-                <option value="">— none —</option>
-                {REGION_OPTIONS.map((t) => (
-                  <option key={t} value={t}>{TERRITORY_LABEL[t]}</option>
-                ))}
-              </select>
-            </label>
-            <button type="submit" className="rounded-md bg-[#8ab4ff] px-4 py-1.5 text-[13px] font-semibold text-[#0b0f17] hover:bg-[#a5c4ff]">Add staff</button>
+            <div className="text-[11px] uppercase tracking-wide text-[#9bb0d4]">
+              Manages regions (optional)
+              <div className="mt-2 normal-case tracking-normal"><RegionChecks selected={[]} /></div>
+            </div>
+            <SubmitButton pendingText="Adding…" className="rounded-md bg-[#8ab4ff] px-4 py-1.5 text-[13px] font-semibold text-[#0b0f17] hover:bg-[#a5c4ff]">Add staff</SubmitButton>
           </form>
         </section>
 

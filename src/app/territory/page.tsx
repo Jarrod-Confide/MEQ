@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { Nav } from "@/components/Nav";
 import { getRegions, type RegionSummary, type TierName } from "@/lib/region-data";
-import { getStaffByRegion } from "@/lib/staff";
+import { getCmByRegion } from "@/lib/staff";
 import { WINDOWS } from "@/lib/engagement-cache";
-import { TERRITORY_LABEL, TERRITORY_CM, TERRITORY_COLOR, type Territory } from "@/lib/territory";
+import { TERRITORY_LABEL, TERRITORY_COLOR, type Territory } from "@/lib/territory";
 import { TIER_COLOR } from "@/components/engagement-ui";
 
 export const dynamic = "force-dynamic";
@@ -20,15 +20,11 @@ export default async function RegionsPage({
   const { days: daysParam } = await searchParams;
   const days = WINDOWS.some((w) => String(w.days) === daysParam) ? Number(daysParam) : DEFAULT_DAYS;
 
-  const [data, staffByRegion] = await Promise.all([getRegions(days), getStaffByRegion()]);
-  const cmFor = (region: Territory) =>
-    staffByRegion[region]?.join(", ") || TERRITORY_CM[region];
+  const [data, cmByRegion] = await Promise.all([getRegions(days), getCmByRegion()]);
+  const cmFor = (region: Territory) => cmByRegion[region];
 
-  // CM regions first (sorted by per-capita engagement, most-engaged on top), OTHER last.
-  const cmRegions = data.summaries
-    .filter((s) => s.region !== "OTHER")
-    .sort((a, b) => b.avgEngagement - a.avgEngagement);
-  const other = data.summaries.find((s) => s.region === "OTHER");
+  // All five regions (Global included) ranked by per-capita engagement.
+  const cmRegions = [...data.summaries].sort((a, b) => b.avgEngagement - a.avgEngagement);
 
   const maxAvg = Math.max(1, ...data.summaries.map((s) => s.avgEngagement));
 
@@ -82,7 +78,7 @@ export default async function RegionsPage({
         <section className="rounded-lg border border-[#1f2a3d] bg-[#111726] p-5">
           <h2 className="mb-4 text-[13px] uppercase tracking-wide text-[#9bb0d4]">Average engagement per member (by region)</h2>
           <div className="space-y-3">
-            {[...cmRegions, ...(other ? [other] : [])].map((s) => (
+            {cmRegions.map((s) => (
               <div key={s.region} className="flex items-center gap-3">
                 <div className="w-28 shrink-0 text-[13px] text-[#cfdaee]">{TERRITORY_LABEL[s.region]}</div>
                 <div className="flex-1">
@@ -112,25 +108,18 @@ export default async function RegionsPage({
             <RegionCard key={s.region} s={s} cm={cmFor(s.region)} />
           ))}
         </section>
-
-        {other && other.members > 0 && (
-          <section>
-            <RegionCard s={other} cm={cmFor(other.region)} muted />
-          </section>
-        )}
       </main>
     </div>
   );
 }
 
-function RegionCard({ s, cm, muted }: { s: RegionSummary; cm: string | null; muted?: boolean }) {
+function RegionCard({ s, cm }: { s: RegionSummary; cm: string | null }) {
   const color = TERRITORY_COLOR[s.region];
   return (
     <Link
+      prefetch={false}
       href={`/territory/${s.region}`}
-      className={`block rounded-lg border p-5 transition hover:border-[#2d3d5c] ${
-        muted ? "border-[#1f2a3d] bg-[#0d121e]" : "border-[#1f2a3d] bg-[#111726]"
-      }`}
+      className="block rounded-lg border border-[#1f2a3d] bg-[#111726] p-5 transition hover:border-[#2d3d5c]"
     >
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-2">

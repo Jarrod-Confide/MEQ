@@ -71,6 +71,13 @@
       "when": 1784224239375,
       "tag": "0009_overjoyed_mariko_yashida",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1790868648036,
+      "tag": "0010_orange_silver_samurai",
+      "breakpoints": true
     }
   ]
 }

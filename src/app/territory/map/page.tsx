@@ -2,12 +2,13 @@ import Link from "next/link";
 import { Nav } from "@/components/Nav";
 import { fetchMemberMap } from "@/lib/members";
 import { RegionChoropleth, type MemberDot } from "@/components/RegionChoropleth";
+import { getCmByRegion } from "@/lib/staff";
 import { territoryFromCity, TERRITORY_LABEL, TERRITORY_ORDER } from "@/lib/territory";
 
 export const revalidate = 300;
 
 export default async function TerritoryMapPage() {
-  const data = await fetchMemberMap();
+  const [data, cmByRegion] = await Promise.all([fetchMemberMap(), getCmByRegion()]);
 
   const dots: MemberDot[] = data.points.map((p) => ({
     name: p.name,
@@ -44,7 +45,7 @@ export default async function TerritoryMapPage() {
       </div>
 
       <main className="flex-1 overflow-hidden">
-        <RegionChoropleth points={dots} />
+        <RegionChoropleth points={dots} cmByRegion={cmByRegion} />
       </main>
     </div>
   );
