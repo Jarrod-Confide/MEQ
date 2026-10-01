@@ -38,3 +38,6 @@ next-env.d.ts
 # MEQ
 .env.local
 .vercel
+
+# local handoff files (secrets) — never commit
+/tmp/
