@@ -8,6 +8,7 @@ export const NAV_ITEMS = [
   { href: "/meq", label: "Quadrant" },
   { href: "/territory", label: "Regions" },
   { href: "/outreach", label: "Outreach" },
+  { href: "/admin/staff", label: "Staff" },
 ] as const;
 
 export function Nav({ current }: { current: string }) {

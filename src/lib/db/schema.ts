@@ -214,9 +214,6 @@ export const staff = pgTable(
     normalizedName: text("normalized_name").notNull(),
     // Extra normalized spellings seen in free-text fields ("larry whiteside jr").
     aliases: jsonb("aliases").$type<string[]>().notNull().default([]),
-    // DEPRECATED (single region) — superseded by `regions`; drop in a later
-    // migration once nothing reads it.
-    region: text("region"),
     // Regions this staff member manages (a CM can own more than one, e.g.
     // Sean = SE + Global). Empty = staff who own no book; they still matter,
     // because staff referrals earn no engagement credit.
@@ -231,11 +228,12 @@ export const staff = pgTable(
 /**
  * Who referred each member, resolved from HubSpot's free-text
  * 'Referred/Invited By' contact property during the daily quality sync.
- * One row per referred member. status:
- *   member    → referrer resolved to a member (earns Connector credit)
+ * One row per referred member. status (rules in lib/referral-matching.ts):
+ *   member    → referrer resolved to one member (earns Connector credit)
  *   staff     → referrer is staff (tracked, no engagement credit)
+ *   ambiguous → names one person, but the roster has 2+ rows with that name
  *   unmatched → name didn't resolve (surfaced at /admin/staff)
- *   ignored   → junk value ("n/a", "self", "linkedin", …)
+ *   ignored   → not a person ("n/a", "already a member", "linkedin", …)
  */
 export const memberReferrals = pgTable(
   "member_referrals",
@@ -253,7 +251,7 @@ export const memberReferrals = pgTable(
     }),
     rawName: text("raw_name").notNull(),
     normalizedRaw: text("normalized_raw").notNull(),
-    status: text("status").notNull(), // member | staff | unmatched | ignored
+    status: text("status").notNull(), // member | staff | ambiguous | unmatched | ignored
     // Referred member's join date — the dated event that earns (decayed) credit.
     referredJoinedAt: timestamp("referred_joined_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),

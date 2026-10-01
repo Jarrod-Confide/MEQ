@@ -55,7 +55,7 @@ export function EngagementTable({ members }: { members: MemberScore[] }) {
       return dir * (av - bv);
     });
     return sorted;
-  }, [members, sort, asc, q]);
+  }, [members, sort, asc, q, hideInactive]);
 
   const onSort = (key: SortKey) => {
     if (sort === key) setAsc(!asc);

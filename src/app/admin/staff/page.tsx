@@ -23,17 +23,19 @@ function RegionChecks({ selected }: { selected: string[] }) {
 }
 
 export default async function StaffAdminPage() {
-  const [staffRows, unmatched, referralCounts] = await Promise.all([
+  const [staffRows, queue, referralCounts] = await Promise.all([
     meqDb.select().from(schema.staff).orderBy(schema.staff.name),
-    meqSql<{ normalized_raw: string; raw_name: string; n: number }[]>`
-      SELECT normalized_raw, MIN(raw_name) raw_name, COUNT(*)::int n
-      FROM member_referrals WHERE status = 'unmatched'
-      GROUP BY normalized_raw ORDER BY n DESC, normalized_raw LIMIT 60`,
+    meqSql<{ status: string; normalized_raw: string; raw_name: string; n: number }[]>`
+      SELECT status, normalized_raw, MIN(raw_name) raw_name, COUNT(*)::int n
+      FROM member_referrals WHERE status IN ('unmatched', 'ambiguous')
+      GROUP BY status, normalized_raw ORDER BY n DESC, normalized_raw LIMIT 120`,
     meqDb
       .select({ status: schema.memberReferrals.status, n: sql<number>`count(*)::int` })
       .from(schema.memberReferrals)
       .groupBy(schema.memberReferrals.status),
   ]);
+  const unmatched = queue.filter((q) => q.status === "unmatched").slice(0, 60);
+  const ambiguous = queue.filter((q) => q.status === "ambiguous");
 
   const counts = Object.fromEntries(referralCounts.map((r) => [r.status, r.n]));
 
@@ -50,11 +52,12 @@ export default async function StaffAdminPage() {
 
       <main className="px-6 py-5 space-y-6">
         {/* Referral resolution summary */}
-        <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <section className="grid grid-cols-2 gap-3 sm:grid-cols-5">
           <Stat label="Member referrals" value={counts.member ?? 0} color="#22c55e" sub="earn Connector credit" />
           <Stat label="Staff referrals" value={counts.staff ?? 0} color="#8ab4ff" sub="tracked, no credit" />
-          <Stat label="Unmatched" value={counts.unmatched ?? 0} color="#facc15" sub="resolve below" />
-          <Stat label="Ignored (junk)" value={counts.ignored ?? 0} color="#6a7da0" sub={'"n/a", "self", …'} />
+          <Stat label="Duplicate names" value={counts.ambiguous ?? 0} color="#fb923c" sub="fix the duplicate in HubSpot" />
+          <Stat label="Unmatched" value={counts.unmatched ?? 0} color="#facc15" sub="see the list below" />
+          <Stat label="Not a person" value={counts.ignored ?? 0} color="#6a7da0" sub={'"n/a", "already a member", …'} />
         </section>
 
         {/* Staff registry */}
@@ -121,12 +124,32 @@ export default async function StaffAdminPage() {
           </form>
         </section>
 
+        {/* Duplicate roster names */}
+        {ambiguous.length > 0 && (
+          <section className="rounded-lg border border-[#1f2a3d] bg-[#111726]">
+            <div className="border-b border-[#1f2a3d] px-5 py-3">
+              <h2 className="text-[13px] uppercase tracking-wide text-[#9bb0d4]">Referrers with duplicate contacts</h2>
+              <p className="m-0 mt-1 text-[11px] text-[#6a7da0]">
+                These name a real member, but MEQ&apos;s roster has two or more contacts with that name (duplicates in HubSpot / EventFlow), so the credit can&apos;t be given to one of them. Merge the duplicates in HubSpot and the next sync credits the referral automatically.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 gap-x-6 px-5 py-3 sm:grid-cols-2 lg:grid-cols-3">
+              {ambiguous.map((u) => (
+                <div key={u.normalized_raw} className="flex items-center justify-between border-b border-[#141c2b] py-1.5 text-[12px]">
+                  <span className="text-[#cfdaee]">{u.raw_name}</span>
+                  <span className="tabular-nums text-[#6a7da0]">×{u.n}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
         {/* Unmatched referrer names */}
         <section className="rounded-lg border border-[#1f2a3d] bg-[#111726]">
           <div className="border-b border-[#1f2a3d] px-5 py-3">
             <h2 className="text-[13px] uppercase tracking-wide text-[#9bb0d4]">Unmatched referrer names</h2>
             <p className="m-0 mt-1 text-[11px] text-[#6a7da0]">
-              Free-text names from the onboarding form that didn&apos;t match a member or staff. If it&apos;s a staff spelling, add it as an alias above; the next sync re-resolves everything automatically.
+              Free-text answers that didn&apos;t name exactly one member or staff (nicknames like Mike and Patti, middle names, and emails are already handled). Usually a spelling variant, someone not in the roster, or several people named in one answer. If it&apos;s a staff spelling, add it as an alias above; the next sync re-resolves everything.
             </p>
           </div>
           {unmatched.length === 0 ? (
