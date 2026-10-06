@@ -120,13 +120,14 @@ MEQ's own tables (`src/lib/db/schema.ts`): `members`, `member_quality`, `message
 3. **`prefetch={false}` on nav and table links.** Next.js prefetching rendered every visible member profile in the background and saturated the database poolers.
 4. **Bump `ENGAGEMENT_CACHE_VERSION`** whenever the shape of the engagement result changes; Vercel's data cache survives deploys.
 5. **Map tiles are OpenStreetMap**, dark-toned by CSS. CARTO's tiles now need an API key.
-6. **61 members appear twice in the roster** (duplicate HubSpot/EventFlow contacts). Their engagement is split across two records and referrals to them can't be credited. Fix the duplicates in HubSpot.
+6. **A HubSpot merge doesn't merge EventFlow's copies.** EventFlow combines its two records automatically when HubSpot reports a merge; for older merges run EventFlow's `scripts/merge-hubspot-merged-locals.ts` (dry run first). MEQ follows at its next sync, since it skips retired (`deleted_at`) contacts.
 
 ## Backlog
 
-- Merge the 61 duplicate member contacts in HubSpot.
+The working backlog is **`docs/BACKLOG.md`** (from the CM team's feedback, October 2026). Older ideas not yet in it:
+
+- Merge Patrick Doliny's three HubSpot contacts (the duplicate cleanup of October 2026 left only that one).
 - Have EventFlow take each region's CM from MEQ's member-stats feed instead of keeping its own copy.
-- Quadrant evolution chart (quadrant mix over time from snapshots).
 - Member-facing score and gamification (quarterly email with tier and how to raise it).
 - Vendor/sponsor flag from `member_quality.industry`.
 - CM goal targets in `src/lib/goals.ts` are still placeholders.
