@@ -188,6 +188,10 @@ export const memberEngagementSnapshots = pgTable(
     total: doublePrecision("total"),
     tier: text("tier"),
     dimensions: jsonb("dimensions").$type<Record<string, number>>().default({}),
+    // Raw activity counts in the 90-day window (SignalCounts). Powers the
+    // participation-share engagement goal and its trend; null on rows
+    // written before 2026-10.
+    signals: jsonb("signals").$type<Record<string, number>>(),
     qualityScore: integer("quality_score"),
     qualityTier: text("quality_tier"),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
@@ -218,10 +222,14 @@ export const staff = pgTable(
     // Sean = SE + Global). Empty = staff who own no book; they still matter,
     // because staff referrals earn no engagement credit.
     regions: jsonb("regions").$type<string[]>().notNull().default([]),
+    // Google sign-in address (lowercased). Links a signed-in user to their
+    // regions, so CMs land on their own region by default.
+    email: text("email"),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => ({
     staffNormUniq: uniqueIndex("staff_normalized_name_uniq").on(t.normalizedName),
+    staffEmailUniq: uniqueIndex("staff_email_uniq").on(t.email),
   })
 );
 
@@ -277,6 +285,48 @@ export const engagementCache = pgTable("engagement_cache", {
   computedAt: timestamp("computed_at", { withTimezone: true }).notNull(),
   durationMs: integer("duration_ms"),
 });
+
+/**
+ * Who can open /admin. A short list managed at /admin/admins, on top of the
+ * permanent bootstrap in lib/admin.ts (so nobody can lock everyone out).
+ */
+export const admins = pgTable("admins", {
+  email: text("email").primaryKey(), // lowercased
+  addedBy: text("added_by"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+/**
+ * Tunable setup variables (event goal tiers, per-event-type goals, the
+ * engagement measure), one JSON value per key. Shapes and defaults live in
+ * lib/performance.ts; a missing key means "use the default".
+ */
+export const appSettings = pgTable("app_settings", {
+  key: text("key").primaryKey(),
+  value: jsonb("value").notNull(),
+  updatedBy: text("updated_by"),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+/**
+ * Expansion cities: places where we want enough members to host events.
+ * New members count toward a city by Closest Major City and the date they
+ * became Active. The region (and so its CM) owns the city. Each city has a
+ * goal and a stretch goal, per quarter and per year.
+ */
+export const expansionCities = pgTable("expansion_cities", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  city: text("city").notNull().unique(), // a Closest Major City value
+  region: text("region").notNull(), // Territory code
+  quarterGoal: integer("quarter_goal").notNull().default(5),
+  quarterStretch: integer("quarter_stretch").notNull().default(7),
+  yearGoal: integer("year_goal").notNull().default(20),
+  yearStretch: integer("year_stretch").notNull().default(28),
+  active: boolean("active").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export type ExpansionCity = typeof expansionCities.$inferSelect;
 
 export type MemberEngagementSnapshot = typeof memberEngagementSnapshots.$inferSelect;
 export type NewMemberEngagementSnapshot = typeof memberEngagementSnapshots.$inferInsert;

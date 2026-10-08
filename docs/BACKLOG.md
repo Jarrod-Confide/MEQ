@@ -1,14 +1,25 @@
 # MEQ backlog
 
 **Sources:** "MEQ Community Manager Feedback" (CM team, Oct 2026) and the "Community Manager Performance & Bonus Plan v2" draft, reviewed against the live system and data. Decisions from Jarrod recorded 2026-10-06 and 2026-10-08.
+**Built 2026-10-08:** MQ-1 (nav), MQ-2 (Admin + admins list + Setup), MQ-3 (sign-in identity), MQ-6 (Dashboard), MQ-7, MQ-18, MQ-19, MQ-20 (on the Dashboard), MQ-21, plus the Events page.
 **Theme:** make MEQ something CMs *act* on every day, centered on the goals they are measured against.
 
 Sizes: **S** = under a day, **M** = a few days, **L** = a week or more. Priority: **P1** do first, **P2** next, **P3** nice to have.
-Status: **Ready** (agreed, can be built) · **Decided** (approach chosen) · **Needs decision** · **Not planned**.
+Status: **Built** · **Ready** (agreed, can be built) · **Decided** (approach chosen) · **Needs decision** · **Not planned**.
 
 ---
 
 ## Decisions
+
+### 2026-10-08 (later): build it, with ranges
+
+- **Every goal is a range: a goal and a stretch goal.**
+- **Admin is admins-only**, with a list of admins. Setup lives there: event goals, the open list of expansion cities, and the engagement measure's variables.
+- **Attendance is tracked for every event type**, with a breakdown by type (Events page). Each type can carry a goal by city size, a fixed goal (e.g. Anti-Summits), or none.
+- **Full events / capacity cap: still for discussion.** MEQ shows capacity and waitlists but does not change any goal for it.
+- **Engagement measure:** the proposed participation share is agreed; its variables are adjustable in Setup.
+- **Onboarded = became an Active member in HubSpot**, for now. May change; possibly a new-member checklist.
+- **Activated: still to discuss** (dormant members can be re-activated too). Left off the Dashboard until defined.
 
 ### 2026-10-08: performance goals, not bonus calculations
 
@@ -17,7 +28,7 @@ Status: **Ready** (agreed, can be built) · **Decided** (approach chosen) · **N
 - **Every CM is on the plan** and tracked against the same goals.
 - **Goals are tracked per quarter and per year.**
 - **Active practitioner:** attendees who are practicing security leaders. Everyone else is excluded (sponsors, vendors, Confide staff, guests).
-- **Full events:** an event that reached capacity is marked *Full*, and its attendance goal is capped at its capacity, so a CM is never shown short for seats that didn't exist. (Proposed by MEQ; confirm.)
+- **Full events:** proposed capping a full event's goal at its capacity; Jarrod wants to discuss how that would show first (see the later decision above).
 - **Southeast is getting a new CM**, starting soon. Once they start, Sean manages Global only (MQ-22).
 
 ### 2026-10-06
@@ -64,13 +75,16 @@ The **v1** plan gave each **Anti-Summit** (the larger flagship events) its own t
 
 ### Foundation
 
-**MQ-1 · New navigation, Dashboard as the landing page** · S · P1 · Ready
+**MQ-1 · New navigation, Dashboard as the landing page** · S · P1 · Built
+- Built: Dashboard · My Priorities (today's Outreach) · Members (today's leaderboard; Quality linked) · Events · Regions (region map and member map inside) · Admin (admins only). New Members joins with MQ-10. `/meq` redirects to Members; the member map moved to `/map`; the old membership dashboard stays at `/dashboard`, linked from the Dashboard.
 - Six tabs as approved; `/` opens the Dashboard. Old routes redirect (Engagement, Quality, Quadrant → Members; Outreach → My Priorities; Map → Regions; Staff → Admin).
 
-**MQ-2 · Admin area** · S · P1 · Ready
+**MQ-2 · Admin area** · S · P1 · Built
+- Built: `/admin` (admins only, list at `/admin/admins`, jarrod@ permanent), Setup, Expansion cities, Staff & referrals, Unmatched cities.
 - Staff & Referrals, expansion cities (MQ-18), unmatched cities, and data-quality checks move into Admin.
 
-**MQ-3 · Know which CM is signed in** · S · P1 · Ready · *enabler*
+**MQ-3 · Know which CM is signed in** · S · P1 · Built · *enabler*
+- Built: staff sign-in email on Admin → Staff. Needs each CM's email entered.
 - Add each staff member's sign-in email; CMs default to their own region(s) with a switch to see all; non-CM staff see all regions.
 
 **MQ-22 · Hand Southeast to the new CM** · S · P1 · Ready (when they start)
@@ -78,7 +92,8 @@ The **v1** plan gave each **Anti-Summit** (the larger flagship events) its own t
 
 ### Dashboard and performance goals
 
-**MQ-6 · CM Dashboard** · M · P1 · Decided
+**MQ-6 · CM Dashboard** · M · P1 · Built
+- Built without number 5 (activation), pending the Activated definition.
 - For the signed-in CM's region. Every number shows a **trend line** (by week within the quarter, and by quarter), not just today's value:
   1. **Goals at a glance:** progress on each goal, this quarter and this year to date, side by side. No combined score.
   2. **Event attendance vs goal:** this quarter's events, each with actual attendance, its goal, and whether it was full. Plus **upcoming events with registrations vs goal**, so a CM can see which dinners need more people while there is still time (MQ-19).
@@ -88,21 +103,23 @@ The **v1** plan gave each **Anti-Summit** (the larger flagship events) its own t
   6. **Needs attention:** how many members are waiting in My Priorities, with a link.
 - "All regions" view for non-CM staff.
 
-**MQ-18 · Expansion cities per CM** · S · P1 · Needs decision
+**MQ-18 · Expansion cities per CM** · S · P1 · Built (lists still needed)
 - Admin page to assign each CM's expansion cities and a target per city, for the quarter and for the year (default 5 from the plan). Counts new members by Closest Major City and the date they became Active (until "onboarded" is defined, MQ-12).
 - Needs: expansion city lists for Brandy and Madi, and for the new Southeast CM once they start (Anjie's are in the plan). Global has none unless the team adds some.
 
-**MQ-19 · Event attendance goals** · M · P1 · Decided
+**MQ-19 · Event attendance goals** · M · P1 · Built
 - For each Networking Dinner and Experience Event in a region: the goal from its city's member count (10, 15, 20 or 25), actual attendance by active practitioners, and capacity. Events that reached capacity (full or waitlisted) are marked **Full** and their goal is capped at capacity. Registrations vs goal for upcoming events.
 - **Active practitioner:** practicing security leaders only. Determined from the attendee's contact record; sponsors, vendors, Confide staff and guests are excluded. During the build, confirm how EventFlow tags sponsors and vendors.
 - The "members in city" count used for the goal comes from MEQ, the same number CMs see.
 - Open: whether the v1 Anti-Summit targets carry over (see "Anti-Summits" above). Dinners can be built without it.
 
-**MQ-20 · Goal scorecard, by quarter and year** · M · P1 · Ready (after MQ-18, MQ-19)
+**MQ-20 · Goal scorecard, by quarter and year** · M · P1 · Built (Dashboard, per region or all)
+- Still to add: a side-by-side table of all CMs for managers.
 - Per CM, per goal: actual vs target for this quarter, this year to date, and past periods for comparison. Shown on the Dashboard and in an all-CM view for managers, which is what the year-end review uses.
 - No bonus formula, weighting, combined score or dollars.
 
-**MQ-21 · An engagement measure that can improve** · S · P1 · Needs decision
+**MQ-21 · An engagement measure that can improve** · S · P1 · Built
+- Agreed 2026-10-08; window, reactions and goal/stretch are in Setup. Goal to be set before Q1 2027.
 - Tiers are relative (finding 2), so the 2027 engagement goal needs an absolute measure. Proposed: **share of the region's members who participated in the last 90 days** (attended a live event, posted on Slack or Circle, or visited Circle). Easy to explain, can rise or fall, and comparable across regions.
 - Needs: the team agrees the measure; targets set before Q1 2027.
 
@@ -115,7 +132,7 @@ The **v1** plan gave each **Anti-Summit** (the larger flagship events) its own t
 - The signed-in CM's region: new members not yet participating, declining members, dormant members, high-quality members with low engagement.
 - CMs log activity on a member: **contacted, snoozed (until a date), note**, plus other actions such as *called*, *met at an event*, *introduced to someone*, *invited to an event*. Snoozed members leave the list until the date; the history shows on the member's profile so CMs see each other's follow-up.
 
-**MQ-7 · Live events in the score; virtual counted separately** · S · P1 · Decided
+**MQ-7 · Live events in the score; virtual counted separately** · S · P1 · Built
 - The engagement score's Events dimension counts **in-person events only**. Virtual attendance is measured and shown as its own count (profile, Members, regions), but adds nothing to the overall score. Bump the cache version; annotate trend charts.
 
 **MQ-8 · Engagement by channel: Slack, Circle, virtual, in-person** · M · P2 · Ready
@@ -147,8 +164,8 @@ The **v1** plan gave each **Anti-Summit** (the larger flagship events) its own t
 
 **MQ-12 · Define "Onboarded" and "Activated"** · Needs decision (team)
 - Lifecycle today: Prospect → Pending (asked to join) → Active (completed the onboarding form).
-- **Onboarded:** left for the team to decide. It also decides when a new member counts toward the expansion-city goal (MQ-18).
-- **Activated:** proposed as first real participation (a live event, a Slack/Circle post, or a Circle login) within 30 days of becoming Active. Used by My Priorities, the Dashboard and the funnel.
+- **Onboarded:** for now, becoming an Active member in HubSpot (2026-10-08). The team may replace it with a new-member checklist. It decides when a new member counts toward the expansion-city goal (MQ-18).
+- **Activated:** still to discuss. Proposed: first real participation within 30 days of becoming Active, but dormant members can be re-activated too, so the definition may need to cover both.
 
 ### Regions
 
@@ -172,11 +189,12 @@ The **v1** plan gave each **Anti-Summit** (the larger flagship events) its own t
 ## Open questions
 
 1. **Expansion cities** for Brandy and Madi, and for the new Southeast CM once they start. (MQ-18)
-2. **Anti-Summits:** do the v1 targets (50 attendees, 12 qualified non-members, 6 new members per Anti-Summit) carry over? (MQ-19)
-3. **Full events:** confirm that an event at capacity has its goal capped at capacity. (MQ-19)
-4. **Engagement goal:** agree the proposed measure; set targets before Q1 2027. (MQ-21)
-5. **Onboarded:** team to define. (MQ-12)
-6. **Activated:** confirm the proposed definition. (MQ-12)
+2. **Anti-Summits:** give them a fixed goal (v1 had 50 attendees, 12 qualified non-members, 6 new members)? Set in Setup. (MQ-19)
+3. **Full events:** how, or whether, capacity should affect a goal. (MQ-19)
+4. **Stretch goals:** the defaults are placeholders (goal + 25%); set the real ones in Setup.
+5. **Engagement goal and stretch** before Q1 2027. (MQ-21)
+6. **Onboarded:** confirm or replace the working definition. (MQ-12)
+7. **Activated:** define, including re-activated dormant members. (MQ-12)
 
 ---
 

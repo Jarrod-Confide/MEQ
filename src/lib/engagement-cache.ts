@@ -10,9 +10,10 @@ export const ENGAGEMENT_TAG = "engagement";
  * a dimension) would otherwise serve stale, wrong-shaped objects to the new
  * code for up to `revalidate` seconds — a brief post-deploy outage.
  * BUMP THIS whenever the engagement data shape changes. (v3 = member
- * referrals feed Connector at weight 0.10, signals add `referrals`.)
+ * referrals feed Connector at weight 0.10, signals add `referrals`. v4 =
+ * live events only in the score, signals add `virtualAttended`.)
  */
-export const ENGAGEMENT_CACHE_VERSION = "v3-referrals-2026-10-01-live-contacts";
+export const ENGAGEMENT_CACHE_VERSION = "v4-live-events-only-2026-10-08";
 
 /**
  * Cached read of the MATERIALIZED leaderboard (engagement_cache table) —

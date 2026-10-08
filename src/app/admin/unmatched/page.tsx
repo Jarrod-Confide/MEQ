@@ -8,10 +8,10 @@ export default async function UnmatchedPage() {
   return (
     <div className="mx-auto max-w-3xl px-6 py-10">
       <a
-        href="/"
+        href="/admin"
         className="text-[12px] uppercase tracking-[0.05em] text-[#9bb0d4] hover:text-white"
       >
-        ← Back to map
+        ← Admin
       </a>
       <h1 className="mb-1 mt-4 text-2xl font-semibold">Unmatched Cities</h1>
       <p className="mb-8 max-w-prose text-[14px] leading-relaxed text-[#9bb0d4]">

@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { sql } from "drizzle-orm";
-import { Nav } from "@/components/Nav";
+import { PageHeader } from "@/components/PageHeader";
 import { meqDb, meqSql, schema } from "@/lib/db/meq";
 import { TERRITORY_LABEL, TERRITORY_ORDER, TERRITORY_COLOR } from "@/lib/territory";
 import { SubmitButton } from "@/components/SubmitButton";
-import { addStaff, updateStaffRegions, deleteStaff } from "./actions";
+import { addStaff, updateStaff, deleteStaff } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -41,14 +41,9 @@ export default async function StaffAdminPage() {
 
   return (
     <div className="min-h-screen">
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[#1f2a3d] bg-[#111726] px-6 py-4">
-        <div>
-          <div className="text-[12px] uppercase tracking-[0.05em] text-[#9bb0d4]">MEQ · Admin</div>
-          <h1 className="m-0 text-xl font-semibold">Staff &amp; Referrals</h1>
-        </div>
-        <Nav current="/admin/staff" />
-        <Link href="/territory" className="text-[12px] text-[#8ab4ff] hover:underline">← Regions</Link>
-      </header>
+      <PageHeader eyebrow="MEQ · Admin" title="Staff & Referrals" current="/admin/staff">
+        <Link href="/admin" prefetch={false} className="text-[12px] text-[#8ab4ff] hover:underline">← Admin</Link>
+      </PageHeader>
 
       <main className="px-6 py-5 space-y-6">
         {/* Referral resolution summary */}
@@ -65,7 +60,7 @@ export default async function StaffAdminPage() {
           <div className="border-b border-[#1f2a3d] px-5 py-3">
             <h2 className="text-[13px] uppercase tracking-wide text-[#9bb0d4]">Staff</h2>
             <p className="m-0 mt-1 text-[11px] text-[#6a7da0]">
-              List <b className="text-[#9bb0d4]">everyone at Confide</b> who might refer members, including staff who don&apos;t manage a region — anyone not listed here earns member engagement credit for their referrals. Tick regions to make someone a region&apos;s community manager (a person can manage several). Aliases are extra spellings seen in the onboarding form (comma-separated). Referral changes apply on the next daily sync.
+              List <b className="text-[#9bb0d4]">everyone at Confide</b> who might refer members, including staff who don&apos;t manage a region — anyone not listed here earns member engagement credit for their referrals. Tick regions to make someone a region&apos;s community manager (a person can manage several). The sign-in email is their Google address: it&apos;s how MEQ knows who is signed in, so a CM&apos;s Dashboard opens on their own region. Aliases are extra spellings seen in the onboarding form (comma-separated). Referral changes apply on the next daily sync.
             </p>
           </div>
 
@@ -75,7 +70,7 @@ export default async function StaffAdminPage() {
                 <tr className="text-left text-[11px] uppercase tracking-wide text-[#6a7da0]">
                   <th className="px-5 py-2 font-medium">Name</th>
                   <th className="px-3 py-2 font-medium">Aliases</th>
-                  <th className="px-3 py-2 font-medium">Manages regions</th>
+                  <th className="px-3 py-2 font-medium">Sign-in email · Manages regions</th>
                   <th className="px-3 py-2 font-medium"></th>
                 </tr>
               </thead>
@@ -88,8 +83,15 @@ export default async function StaffAdminPage() {
                     <td className="px-5 py-2 text-[#cfdaee]">{s.name}</td>
                     <td className="px-3 py-2 text-[12px] text-[#9bb0d4]">{(s.aliases ?? []).join(", ") || "—"}</td>
                     <td className="px-3 py-2">
-                      <form action={updateStaffRegions} className="flex flex-wrap items-center gap-3">
+                      <form action={updateStaff} className="flex flex-wrap items-center gap-3">
                         <input type="hidden" name="id" value={s.id} />
+                        <input
+                          name="email"
+                          type="email"
+                          defaultValue={s.email ?? ""}
+                          placeholder="name@confide.group"
+                          className="w-52 rounded-md border border-[#2d3d5c] bg-[#0b0f17] px-2 py-1 text-[12px] text-white placeholder:text-[#6a7da0]"
+                        />
                         <RegionChecks selected={s.regions ?? []} />
                         <SubmitButton pendingText="Saving…" className="rounded-md border border-[#2d3d5c] px-2 py-1 text-[11px] text-[#8ab4ff] hover:bg-[#1a2238]">Save</SubmitButton>
                       </form>
@@ -111,6 +113,10 @@ export default async function StaffAdminPage() {
             <label className="text-[11px] uppercase tracking-wide text-[#9bb0d4]">
               Name
               <input name="name" required placeholder="Full name" className="mt-1 block w-48 rounded-md border border-[#2d3d5c] bg-[#0b0f17] px-2.5 py-1.5 text-[13px] text-white placeholder:text-[#6a7da0]" />
+            </label>
+            <label className="text-[11px] uppercase tracking-wide text-[#9bb0d4]">
+              Sign-in email
+              <input name="email" type="email" placeholder="name@confide.group" className="mt-1 block w-56 rounded-md border border-[#2d3d5c] bg-[#0b0f17] px-2.5 py-1.5 text-[13px] text-white placeholder:text-[#6a7da0]" />
             </label>
             <label className="text-[11px] uppercase tracking-wide text-[#9bb0d4]">
               Aliases (comma-separated)

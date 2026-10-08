@@ -17,7 +17,7 @@ export const WEIGHTS = {
   reactionReceived: 1,
   replyReceived: 3, // another member replied to your post
   activeDay: 2, // each distinct day with any activity
-  attended: 50, // in-person event attendance (no virtual split yet)
+  attended: 50, // in-person (live) event attendance. Virtual adds nothing (MQ-7).
   noShow: -2,
   spoke: 75, // DEFERRED: no speaker→contact link in EventFlow yet (always 0 today)
   // Referring a new member — the strongest connector action (connector
@@ -79,7 +79,9 @@ export type SignalCounts = {
   reactionsGiven: number;
   reactionsReceived: number;
   repliesReceived: number;
-  eventsAttended: number;
+  eventsAttended: number; // live (in-person) events only, since 2026-10
+  /** Virtual events attended: shown, but adds nothing to the score (MQ-7). */
+  virtualAttended?: number;
   noShows: number;
   activeDays: number;
   connectorActions: number; // job posts + member intros
@@ -235,10 +237,16 @@ export async function computeEngagement(
           AND reply.posted_at >= ${since} AND reply.posted_at <= ${until}
           AND reply.author_email IS DISTINCT FROM parent.author_email`,
 
-      eventflowSql<{ contact_id: string; status: string; starts_at: Date }[]>`
-        SELECT a.contact_id, a.status, e.starts_at
-        FROM attendees a JOIN events e ON a.event_id = e.id
-        WHERE a.status IN ('attended', 'no_show') AND e.starts_at >= ${since} AND e.starts_at <= ${until}`,
+      // Virtual = an event type EventFlow broadcasts by calendar + Zoom
+      // (Case Study, Virtual, Virtual Roundtable). Test events never count.
+      eventflowSql<{ contact_id: string; status: string; starts_at: Date; is_virtual: boolean }[]>`
+        SELECT a.contact_id, a.status, e.starts_at,
+               COALESCE(t.invite_mode = 'gcal_broadcast', false) AS is_virtual
+        FROM attendees a
+        JOIN events e ON a.event_id = e.id
+        LEFT JOIN event_types t ON t.id = e.event_type_id
+        WHERE a.status IN ('attended', 'no_show') AND NOT e.is_test
+          AND e.starts_at >= ${since} AND e.starts_at <= ${until}`,
 
       // Content scores (MEQ DB) — substance-based weight per message.
       meqSql<
@@ -311,6 +319,7 @@ export async function computeEngagement(
     reactionsReceived: 0,
     repliesReceived: 0,
     eventsAttended: 0,
+    virtualAttended: 0,
     noShows: 0,
     activeDays: 0,
     connectorActions: 0,
@@ -439,10 +448,18 @@ export async function computeEngagement(
     acc.signals.repliesReceived += 1;
   }
 
-  // Event attendance → Depth + Presence
+  // Event attendance → Events. Live events only (Jarrod, 2026-10-06): a
+  // virtual attendance is counted for display but earns no score, and a
+  // virtual no-show costs nothing. Virtual counts are attached at the end,
+  // to members scored on something else (virtual alone doesn't score them).
+  const virtualByContact = new Map<string, number>();
   for (const a of attendance) {
     const contact = contactById.get(a.contact_id);
     if (!contact || !validDate(a.starts_at)) continue;
+    if (a.is_virtual) {
+      if (a.status === "attended") virtualByContact.set(contact.id, (virtualByContact.get(contact.id) ?? 0) + 1);
+      continue;
+    }
     const key = `c:${contact.id}`;
     let acc = accs.get(key);
     if (!acc) {
@@ -479,6 +496,7 @@ export async function computeEngagement(
 
   // Finalize active-days presence + Depth (evidence-weighted avg substance)
   for (const acc of accs.values()) {
+    if (acc.key.startsWith("c:")) acc.signals.virtualAttended = virtualByContact.get(acc.key.slice(2)) ?? 0;
     let presenceDays = 0;
     for (const dec of acc.activeDays.values()) presenceDays += WEIGHTS.activeDay * dec;
     acc.raw.presence += presenceDays;

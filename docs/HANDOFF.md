@@ -1,6 +1,6 @@
 # MEQ handoff
 
-**Last updated:** 2026-10-01. Keep this file current when the system changes; it replaces the June `MEQ-Handoff.md`.
+**Last updated:** 2026-10-08. Keep this file current when the system changes; it replaces the June `MEQ-Handoff.md`.
 
 ## What MEQ is
 
@@ -42,17 +42,17 @@ npm test                                 # unit tests (also run by every build)
 
 | Route | What |
 |---|---|
-| `/` | Member map (bubbles by closest major city) |
-| `/dashboard` | Membership dashboard and engagement trends |
-| `/engagement`, `/engagement/[key]` | Leaderboard and member profile |
-| `/quality` | Quality scores |
-| `/meq` | Quality × engagement quadrant, with the selected quadrant's member list and CSV export |
+| `/` | **Dashboard**: goals at a glance (event attendance, new members in expansion cities, member engagement), each as goal and stretch, this quarter and year; trends; this quarter's events; needs-attention count. Opens on the signed-in CM's region(s); `?region=all\|NE\|…` |
+| `/events` | Attendance for every event type, by period and region, with goal achievement |
+| `/outreach` | **My Priorities** (CM worklists, CSV export) |
+| `/engagement`, `/engagement/[key]` | **Members**: leaderboard and member profile |
+| `/quality` | Quality scores (linked from Members) |
 | `/territory` | **Regions**: comparison across the five regions |
 | `/territory/[region]` | One region: stats, hotspot map (4-week city trend), sortable member table |
 | `/territory/map` | US map coloured by region |
-| `/outreach` | CM worklists with CSV export |
-| `/admin/staff` | **Staff and referrals**: staff list, region assignment, referral resolution queue |
-| `/admin/unmatched` | Members whose city didn't geocode |
+| `/map` | Member map (bubbles by closest major city) |
+| `/dashboard` | Membership overview (joins, tiers, composition) |
+| `/admin` | **Admin** (admins only): Setup, Expansion cities, Staff & referrals, Admins, Unmatched cities |
 | `/api/health` | Public health check for Confide Heartbeat (see Monitoring) |
 | `/api/v1/member-stats` | Per-member tier, Slack activity, referrals and region for EventFlow (bearer `MEQ_TOKEN_EVENTFLOW`) |
 
@@ -73,12 +73,24 @@ Five regions, assigned by the member's home state (`src/lib/territory.ts`):
 - **EventFlow keeps its own copy of the region model** (`eventflow/src/lib/events/regions.ts`, with tests, plus Slack mentions in `src/lib/notifications/needs-attention.ts`). Any region or CM change must be made in both repos.
 - The map's colours are baked into `public/regions-us-states.geojson`. If you move a state, update that file too; a test fails if the two disagree.
 
+## Performance goals
+
+MEQ tracks performance toward goals; it calculates no bonus (decided 2026-10-08). Rules live in `src/lib/performance.ts` (pure, tested); data in `src/lib/goals-data.ts`.
+
+- **Every goal is a range:** goal and stretch.
+- **Event attendance:** active practitioners (not sponsors, vendors or Confide staff) who attended. Each event's goal comes from its type's rule in Setup: by city size (tiers on members in the event's city that day), fixed, or none. Virtual types (EventFlow `invite_mode = 'gcal_broadcast'`) are counted, never given a goal. EventFlow city spellings that differ from members' Closest Major City are in `EVENT_CITY_ALIASES`.
+- **New members in expansion cities:** members whose Closest Major City is an expansion city, counted by `joined_at` (becoming Active in HubSpot). Cities, regions and quarterly/annual goals at `/admin/cities`.
+- **Member engagement:** share of members who attended a live event or posted/replied on Slack or Circle in the Setup window. The trend comes from weekly snapshots' `signals` (90-day window).
+- **Setup variables** are stored in `app_settings` (defaults in `performance.ts`). **Admins:** `admins` table plus the permanent `BOOTSTRAP_ADMINS` in `src/lib/viewer.ts` (and `MEQ_ADMIN_EMAILS`).
+- **Who is signed in:** `staff.email` links a Google sign-in to a staff record and its regions.
+
 ## Engagement
 
 `src/lib/engagement.ts`, `computeEngagement`. Seven dimensions:
 
 `Events 0.30 · Contribution 0.18 · Reciprocity 0.15 · Depth 0.12 · Reach 0.10 · Connector 0.10 · Presence 0.05`
 
+- **Events count live (in-person) events only** (since 2026-10-08). Virtual attendance is stored as `signals.virtualAttended` but adds nothing to the score.
 - Connector includes **member referrals** (from HubSpot's "Referred/Invited By" field), each worth more than any single connector post. 90-day decay throughout; dimensions normalized to the 95th-percentile member; tiers by rank percentile.
 - **Staff referrals earn nothing.** The staff list must contain *everyone* at Confide who might refer members, not just CMs. Anyone missing from it gets member credit for their referrals.
 - Referral matching rules (nicknames, emails, middle names, duplicates) live in `src/lib/referral-matching.ts`.
@@ -105,7 +117,7 @@ Run one by hand: `curl -H "Authorization: Bearer $CRON_SECRET" https://meq.confi
 
 ## Database
 
-MEQ's own tables (`src/lib/db/schema.ts`): `members`, `member_quality`, `message_scores`, `member_engagement_snapshots`, `member_sync_runs`, `staff`, `member_referrals`, `engagement_cache`.
+MEQ's own tables (`src/lib/db/schema.ts`): `members`, `member_quality`, `message_scores`, `member_engagement_snapshots`, `member_sync_runs`, `staff`, `member_referrals`, `engagement_cache`, `admins`, `app_settings`, `expansion_cities`.
 
 **Always migrate with `npm run db:migrate`**, which also enables row-level security on new tables. Deploy order matters: a migration that *adds* a column the code needs runs **before** the deploy; one that *drops* a column runs **after** the code stops using it.
 
@@ -130,4 +142,4 @@ The working backlog is **`docs/BACKLOG.md`** (from the CM team's feedback, Octob
 - Have EventFlow take each region's CM from MEQ's member-stats feed instead of keeping its own copy.
 - Member-facing score and gamification (quarterly email with tier and how to raise it).
 - Vendor/sponsor flag from `member_quality.industry`.
-- CM goal targets in `src/lib/goals.ts` are still placeholders.
+- `src/lib/goals.ts` (placeholder targets used by the region pages) predates the performance goals; retire it when the region pages move to `performance.ts`.

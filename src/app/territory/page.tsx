@@ -43,8 +43,8 @@ export default async function RegionsPage({
           <Link href="/territory/map" className="rounded-md border border-[#2d3d5c] px-3 py-1.5 text-[12px] text-[#8ab4ff] hover:bg-[#1a2238]">
             🗺 Regions map
           </Link>
-          <Link href="/admin/staff" className="text-[12px] text-[#6a7da0] hover:text-[#8ab4ff]">
-            Manage staff →
+          <Link href="/map" prefetch={false} className="rounded-md border border-[#2d3d5c] px-3 py-1.5 text-[12px] text-[#8ab4ff] hover:bg-[#1a2238]">
+            📍 Member map
           </Link>
         </div>
       </header>

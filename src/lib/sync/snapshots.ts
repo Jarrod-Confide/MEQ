@@ -1,4 +1,4 @@
-import { sql as drizzleSql, eq } from "drizzle-orm";
+import { sql as drizzleSql, and, eq, notInArray } from "drizzle-orm";
 import { meqDb, schema } from "../db/meq";
 import { computeEngagement } from "../engagement";
 import { territoryFromCity } from "../territory";
@@ -57,10 +57,24 @@ export async function writeSnapshot(asOf: Date = new Date()): Promise<SnapshotSt
       total: m.total,
       tier: m.tier,
       dimensions: m.dimensions as Record<string, number>,
+      signals: m.signals as unknown as Record<string, number>,
       qualityScore: member?.qualityScore ?? null,
       qualityTier: member?.qualityTier ?? null,
     };
   });
+
+  // Rewriting a week (backfill after a scoring change) replaces it whole:
+  // drop rows for members who no longer score that week.
+  if (rows.length) {
+    await meqDb
+      .delete(schema.memberEngagementSnapshots)
+      .where(
+        and(
+          eq(schema.memberEngagementSnapshots.weekStart, weekStart),
+          notInArray(schema.memberEngagementSnapshots.memberKey, rows.map((r) => r.memberKey))
+        )
+      );
+  }
 
   // Upsert in chunks.
   const CHUNK = 500;
@@ -83,6 +97,7 @@ export async function writeSnapshot(asOf: Date = new Date()): Promise<SnapshotSt
           total: drizzleSql`excluded.total`,
           tier: drizzleSql`excluded.tier`,
           dimensions: drizzleSql`excluded.dimensions`,
+          signals: drizzleSql`excluded.signals`,
           qualityScore: drizzleSql`excluded.quality_score`,
           qualityTier: drizzleSql`excluded.quality_tier`,
         },
