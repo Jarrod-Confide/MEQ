@@ -10,7 +10,8 @@ export function dateShort(iso: string): string {
 /**
  * Events against their attendance goals. Past events show active
  * practitioners who attended; upcoming ones show active practitioners
- * registered so far, so a CM can see which events need people.
+ * coming (registered minus cancellations and late drop-offs), so a CM can
+ * see which events need people.
  */
 export function EventTable({ events, showYear = false }: { events: EventRow[]; showYear?: boolean }) {
   if (!events.length) return <p className="m-0 text-[12px] text-[#6a7da0]">No events in this view.</p>;
@@ -23,7 +24,7 @@ export function EventTable({ events, showYear = false }: { events: EventRow[]; s
             <th className="py-2 font-medium">Event</th>
             <th className="py-2 font-medium">Type</th>
             <th className="py-2 font-medium">Members in city</th>
-            <th className="py-2 font-medium">Attended · registered</th>
+            <th className="py-2 font-medium">Attended · coming</th>
             <th className="py-2 font-medium">Goal · stretch</th>
             <th className="py-2 font-medium">Capacity</th>
             <th className="py-2 font-medium"></th>
@@ -31,7 +32,7 @@ export function EventTable({ events, showYear = false }: { events: EventRow[]; s
         </thead>
         <tbody>
           {events.map((e) => {
-            const actual = e.past ? e.practitioners : e.registered;
+            const actual = e.past ? e.practitioners : e.coming;
             const status = goalStatus(actual, e.goal);
             return (
               <tr key={e.id} className="border-t border-[#141c2b]">
@@ -44,7 +45,12 @@ export function EventTable({ events, showYear = false }: { events: EventRow[]; s
                 <td className="py-2 tabular-nums text-[#9bb0d4]">{e.membersInCity || ""}</td>
                 <td className="py-2 tabular-nums text-white">
                   {actual}
-                  {!e.past && <span className="ml-1 text-[11px] text-[#6a7da0]">registered</span>}
+                  {!e.past && <span className="ml-1 text-[11px] text-[#6a7da0]">coming</span>}
+                  {!e.past && e.dropOffs > 0 && (
+                    <span className="ml-1 text-[11px] text-[#fb923c]" title="Withdrew within 48 hours; EventFlow still lists them as registered">
+                      ({e.dropOffs} dropped)
+                    </span>
+                  )}
                   {e.past && e.attended > e.practitioners && (
                     <span className="ml-1 text-[11px] text-[#6a7da0]" title="Sponsors, vendors and Confide staff aren't counted">
                       (+{e.attended - e.practitioners} others)

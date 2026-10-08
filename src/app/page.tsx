@@ -184,7 +184,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           </div>
           <EventTable events={quarterEvents} />
           <p className="mb-0 mt-3 text-[11px] text-[#6a7da0]">
-            Held events count active practitioners who attended; upcoming events show who&apos;s registered so far.
+            Held events count active practitioners who attended; upcoming events show who&apos;s coming (registered,
+            minus cancellations and late drop-offs).
             Sponsors, vendors and Confide staff aren&apos;t counted.
           </p>
         </section>

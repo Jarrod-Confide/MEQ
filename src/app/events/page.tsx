@@ -38,7 +38,7 @@ type TypeSummary = {
   metGoal: number;
   metStretch: number;
   upcoming: number; // events still to come
-  registered: number; // active practitioners registered for them
+  coming: number; // active practitioners coming to them
   needPeople: number; // upcoming events with a goal, registrations below it
 };
 
@@ -48,13 +48,13 @@ function summarize(events: EventRow[]): TypeSummary[] {
     const slug = e.typeSlug ?? "unknown";
     let s = by.get(slug);
     if (!s) {
-      s = { name: e.typeName ?? "Unknown type", slug, isVirtual: e.isVirtual, events: 0, attended: 0, practitioners: 0, members: 0, withGoal: 0, goal: 0, stretch: 0, goalActual: 0, metGoal: 0, metStretch: 0, upcoming: 0, registered: 0, needPeople: 0 };
+      s = { name: e.typeName ?? "Unknown type", slug, isVirtual: e.isVirtual, events: 0, attended: 0, practitioners: 0, members: 0, withGoal: 0, goal: 0, stretch: 0, goalActual: 0, metGoal: 0, metStretch: 0, upcoming: 0, coming: 0, needPeople: 0 };
       by.set(slug, s);
     }
     if (!e.past) {
       s.upcoming++;
-      s.registered += e.registered;
-      if (e.goal && e.registered < e.goal.goal) s.needPeople++;
+      s.coming += e.coming;
+      if (e.goal && e.coming < e.goal.goal) s.needPeople++;
       continue;
     }
     s.events++;
@@ -71,7 +71,7 @@ function summarize(events: EventRow[]): TypeSummary[] {
     }
   }
   return [...by.values()].sort(
-    (a, b) => Number(a.isVirtual) - Number(b.isVirtual) || b.practitioners + b.registered - (a.practitioners + a.registered)
+    (a, b) => Number(a.isVirtual) - Number(b.isVirtual) || b.practitioners + b.coming - (a.practitioners + a.coming)
   );
 }
 
@@ -109,7 +109,7 @@ export default async function EventsPage({
     return `/events?${params.toString()}`;
   };
   const periodLabel = periodKey === "up" ? "Upcoming" : p ? p.label : "All time";
-  const needPeople = upcoming.filter((e) => e.goal && e.registered < e.goal.goal).length;
+  const needPeople = upcoming.filter((e) => e.goal && e.coming < e.goal.goal).length;
 
   return (
     <div className="min-h-screen">
@@ -137,7 +137,7 @@ export default async function EventsPage({
 
         <section className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
           <Stat label="Upcoming events" value={upcoming.length} sub={`${upcoming.filter((e) => !e.isVirtual).length} in person, ${upcoming.filter((e) => e.isVirtual).length} virtual`} />
-          <Stat label="Registered so far" value={total(upcoming, (e) => e.registered)} sub={needPeople ? `${needPeople} ${needPeople === 1 ? "event needs" : "events need"} people` : "active practitioners"} />
+          <Stat label="Coming so far" value={total(upcoming, (e) => e.coming)} sub={needPeople ? `${needPeople} ${needPeople === 1 ? "event needs" : "events need"} people` : "active practitioners"} />
           <Stat label="In-person events held" value={inPerson.length} />
           <Stat label="Active practitioners attended" value={total(inPerson, (e) => e.practitioners)} sub={`${total(inPerson, (e) => e.practitionerMembers)} members, ${total(inPerson, (e) => e.practitioners - e.practitionerMembers)} non-members`} />
           <Stat label="Virtual events held" value={virtual.length} sub={scope === "ALL" ? "counted, no goal" : "shown in All regions"} />
@@ -165,7 +165,7 @@ export default async function EventsPage({
                     <th className="py-2 font-medium">Avg per event</th>
                     <th className="py-2 font-medium">Vs goal</th>
                     <th className="py-2 font-medium">Met goal · stretch</th>
-                    <th className="py-2 font-medium">Upcoming · registered</th>
+                    <th className="py-2 font-medium">Upcoming · coming</th>
                     <th className="py-2 font-medium"></th>
                   </tr>
                 </thead>
@@ -185,7 +185,7 @@ export default async function EventsPage({
                       </td>
                       <td className="py-2 tabular-nums text-[#9bb0d4]">{s.withGoal ? `${s.metGoal} · ${s.metStretch} of ${s.withGoal}` : ""}</td>
                       <td className="py-2 tabular-nums text-[#9bb0d4]">
-                        {s.upcoming ? `${s.upcoming} · ${s.registered}` : ""}
+                        {s.upcoming ? `${s.upcoming} · ${s.coming}` : ""}
                         {s.needPeople > 0 && <span className="ml-1.5 text-[11px] text-[#fb923c]">{s.needPeople} need people</span>}
                       </td>
                       <td className="py-2 text-right">
@@ -216,7 +216,7 @@ export default async function EventsPage({
             </div>
             <EventTable events={listedUpcoming} showYear={periodKey === "all" || periodKey === "up"} />
             <p className="mb-0 mt-3 text-[11px] text-[#6a7da0]">
-              Active practitioners registered so far against each event&apos;s goal: &ldquo;Needs people&rdquo; is where to push.
+              Active practitioners coming (registered, minus cancellations and late drop-offs) against each event&apos;s goal: &ldquo;Needs people&rdquo; is where to push.
             </p>
           </section>
         )}

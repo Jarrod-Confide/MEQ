@@ -77,7 +77,13 @@ type RawEvent = {
   practitioners: number;
   practitionerMembers: number;
   noShows: number;
-  registered: number; // practitioners currently registered (upcoming events)
+  /**
+   * Coming = registered minus cancellations and late drop-offs (EventFlow
+   * statuses registered/confirmed/tentative), active practitioners only.
+   * Not pending review or waitlisted. Meaningful for upcoming events.
+   */
+  coming: number;
+  dropOffs: number; // practitioners who withdrew late (≤48h); EventFlow still counts them as registered
   waitlisted: number;
 };
 
@@ -121,14 +127,14 @@ const getRawEvents = unstable_cache(
         JOIN events e ON e.id = a.event_id
         JOIN contacts c ON c.id = a.contact_id
         WHERE NOT e.is_test AND e.starts_at >= ${since}
-          AND a.status IN ('attended', 'no_show', 'registered', 'confirmed', 'tentative', 'waitlisted')`,
+          AND a.status IN ('attended', 'no_show', 'registered', 'confirmed', 'tentative', 'waitlisted', 'drop_off')`,
     ]);
 
     const agg = new Map<string, Omit<RawEvent, "id" | "name" | "city" | "state" | "startsAt" | "status" | "capacity" | "typeSlug" | "typeName" | "isVirtual" | "isAddon">>();
     for (const r of rows) {
       let a = agg.get(r.event_id);
       if (!a) {
-        a = { attended: 0, practitioners: 0, practitionerMembers: 0, noShows: 0, registered: 0, waitlisted: 0 };
+        a = { attended: 0, practitioners: 0, practitionerMembers: 0, noShows: 0, coming: 0, dropOffs: 0, waitlisted: 0 };
         agg.set(r.event_id, a);
       }
       const practitioner = isActivePractitioner({
@@ -146,8 +152,10 @@ const getRawEvents = unstable_cache(
         a.noShows++;
       } else if (r.status === "waitlisted") {
         a.waitlisted++;
+      } else if (r.status === "drop_off") {
+        if (practitioner) a.dropOffs++;
       } else if (practitioner) {
-        a.registered++;
+        a.coming++;
       }
     }
 
@@ -163,10 +171,10 @@ const getRawEvents = unstable_cache(
       typeName: e.type_name,
       isVirtual: e.is_virtual,
       isAddon: e.is_addon,
-      ...(agg.get(e.id) ?? { attended: 0, practitioners: 0, practitionerMembers: 0, noShows: 0, registered: 0, waitlisted: 0 }),
+      ...(agg.get(e.id) ?? { attended: 0, practitioners: 0, practitionerMembers: 0, noShows: 0, coming: 0, dropOffs: 0, waitlisted: 0 }),
     }));
   },
-  ["goals-events-v1"],
+  ["goals-events-v2"],
   { revalidate: TEN_MIN, tags: [GOALS_TAG] }
 );
 

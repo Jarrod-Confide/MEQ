@@ -21,12 +21,21 @@ export default async function MemberDetailPage({
 }) {
   const { key } = await params;
   const { days: daysParam } = await searchParams;
-  const days = WINDOWS.some((w) => String(w.days) === daysParam)
+  const requested = WINDOWS.some((w) => String(w.days) === daysParam)
     ? Number(daysParam)
     : 90;
 
-  const detail = await getMemberDetail(decodeURIComponent(key), days);
+  // A member with no activity in the requested window isn't on that
+  // window's leaderboard; show their all-time profile rather than a 404
+  // (My Priorities links to exactly these quiet members).
+  let days = requested;
+  let detail = await getMemberDetail(decodeURIComponent(key), days);
+  if (!detail && days < 9999) {
+    days = 9999;
+    detail = await getMemberDetail(decodeURIComponent(key), days);
+  }
   if (!detail) notFound();
+  const fellBack = days !== requested;
   const { score, emails, recentMessages, events, trend, topics, quality, passive } = detail;
 
   const stat = (label: string, value: number | string) => (
@@ -142,6 +151,7 @@ export default async function MemberDetailPage({
       {/* Raw signal counts */}
       <h2 className="mb-3 mt-8 text-[13px] uppercase tracking-wide text-[#9bb0d4]">
         Signals (last {days >= 9999 ? "all-time" : `${days}d`})
+        {fellBack && <span className="ml-2 normal-case tracking-normal text-[#facc15]">no activity in the last {requested} days, so this shows all time</span>}
       </h2>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {stat("Posts", score.signals.posts)}

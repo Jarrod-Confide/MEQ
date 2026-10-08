@@ -12,6 +12,8 @@ function safeIso(d: Date | string | null | undefined): string | null {
 
 export type OutreachRow = {
   memberId: string | null;
+  /** Engagement key (c:<EventFlow contact id>): the member profile's URL. */
+  memberKey: string;
   name: string | null;
   company: string | null;
   email: string | null;
@@ -106,6 +108,7 @@ export async function fetchOutreach(territory: Territory | "ALL" = "ALL"): Promi
         r.total != null && r.prior_total != null ? Math.round((r.total - r.prior_total) * 10) / 10 : null;
       return {
         memberId: r.member_id,
+        memberKey: r.member_key,
         name: r.name,
         company: r.company,
         email: r.email,
@@ -212,7 +215,7 @@ export async function fetchOutreach(territory: Territory | "ALL" = "ALL"): Promi
 
 /** Cached wrapper (5 min) — keeps rapid territory navigation off the DB. */
 export function getOutreach(territory: Territory | "ALL" = "ALL"): Promise<OutreachData> {
-  return unstable_cache(() => fetchOutreach(territory), ["outreach", territory], {
+  return unstable_cache(() => fetchOutreach(territory), ["outreach-v2", territory], {
     revalidate: 300,
     tags: ["snapshots"],
   })();
