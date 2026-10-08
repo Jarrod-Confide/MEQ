@@ -209,7 +209,7 @@ export default async function EventsPage({
           <section className={card}>
             <div className="mb-3 flex items-baseline justify-between">
               <h2 className={h2}>
-                Upcoming · {periodLabel}
+                Registered · {periodLabel}
                 {type && ` · ${summary.find((x) => x.slug === type)?.name ?? type}`}
               </h2>
               {type && <Link href={qs({ type: undefined })} prefetch={false} className="text-[12px] text-[#8ab4ff] hover:underline">All types</Link>}
@@ -225,7 +225,7 @@ export default async function EventsPage({
           <section className={card}>
             <div className="mb-3 flex items-baseline justify-between">
               <h2 className={h2}>
-                Held · {periodLabel}
+                Attended · {periodLabel}
                 {type && ` · ${summary.find((x) => x.slug === type)?.name ?? type}`}
               </h2>
               {type && <Link href={qs({ type: undefined })} prefetch={false} className="text-[12px] text-[#8ab4ff] hover:underline">All types</Link>}
