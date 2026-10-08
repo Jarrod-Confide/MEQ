@@ -1,14 +1,26 @@
 # MEQ backlog
 
-**Sources:** "MEQ Community Manager Feedback" (CM team, Oct 2026) and the "Community Manager Performance & Bonus Plan v2" draft, reviewed against the live system and data. Decisions from Jarrod recorded 2026-10-06.
-**Theme:** make MEQ something CMs *act* on every day, centered on the numbers their bonus depends on.
+**Sources:** "MEQ Community Manager Feedback" (CM team, Oct 2026) and the "Community Manager Performance & Bonus Plan v2" draft, reviewed against the live system and data. Decisions from Jarrod recorded 2026-10-06 and 2026-10-08.
+**Theme:** make MEQ something CMs *act* on every day, centered on the goals they are measured against.
 
 Sizes: **S** = under a day, **M** = a few days, **L** = a week or more. Priority: **P1** do first, **P2** next, **P3** nice to have.
 Status: **Ready** (agreed, can be built) · **Decided** (approach chosen) · **Needs decision** · **Not planned**.
 
 ---
 
-## Decisions (2026-10-06)
+## Decisions
+
+### 2026-10-08: performance goals, not bonus calculations
+
+- **MEQ tracks performance toward goals. It does not calculate bonuses.** The bonus is decided at the end of the year on overall performance against the goals, outside MEQ. No bonus formula, weights, combined achievement score or dollar amounts appear in MEQ.
+- **Why:** a single event's attendance isn't fully in the CM's control. A dinner can be full, and no amount of pushing adds seats. Goals are judged on overall performance, with that context visible.
+- **Every CM is on the plan** and tracked against the same goals.
+- **Goals are tracked per quarter and per year.**
+- **Active practitioner:** attendees who are practicing security leaders. Everyone else is excluded (sponsors, vendors, Confide staff, guests).
+- **Full events:** an event that reached capacity is marked *Full*, and its attendance goal is capped at its capacity, so a CM is never shown short for seats that didn't exist. (Proposed by MEQ; confirm.)
+- **Southeast is getting a new CM**, starting soon. Once they start, Sean manages Global only (MQ-22).
+
+### 2026-10-06
 
 - **Navigation:** approved. Six tabs: Dashboard (landing) · My Priorities · Members · New Members · Regions (map inside) · Admin.
 - **Events in the engagement score:** live (in-person) events only. Virtual attendance is measured and shown as its own count, but does **not** add to the overall score. (MQ-7)
@@ -17,31 +29,34 @@ Status: **Ready** (agreed, can be built) · **Decided** (approach chosen) · **N
 - **Location:** stays the Closest Major City from the onboarding form. (MQ-16, MQ-17 not planned)
 - **My Priorities:** CMs can log activity on a member (contacted, snoozed, notes, and other actions). (MQ-5)
 - **Quadrant chart:** retired. (MQ-4)
-- **Dashboard numbers:** chosen from the CM bonus plan v2 (MQ-6).
+- **Dashboard numbers:** the performance goals plus the CM's daily workload (MQ-6).
 - **Membership lifecycle:** Prospect → Pending (asked to join) → Active (completed the onboarding form). What counts as "onboarded" stays open for the team. (MQ-12)
 
-## What the bonus plan (v2) means for MEQ
+## The performance goals MEQ tracks
 
-The v2 plan pays CMs quarterly on two equal goals, with a third added in Q1 2027:
+From the v2 plan, minus the bonus mechanics. Each is shown per quarter and per year, with a trend.
 
-1. **Event attendance (50%):** each Networking Dinner or Experience Event in the CM's region has a goal set by the number of members in that city: under 30 members → 10 attendees; 30 to 50 → 15; 50 to 100 → 20; 100+ → 25. It counts **actual attendance by active practitioners**, not registrations.
-2. **New members in expansion cities (50%):** each CM has a short list of expansion cities, with a goal of 5 new qualified, onboarded members per city per period (quarter or year still to be set). Anjie's are Columbus, Cleveland, Cincinnati, Providence and Philadelphia.
-3. **Member engagement (from Q1 2027):** measured with MEQ; targets to be set.
+1. **Event attendance:** each Networking Dinner or Experience Event in the CM's region has a goal set by the number of members in that city: under 30 members → 10 attendees; 30 to 50 → 15; 50 to 100 → 20; 100+ → 25. It counts **actual attendance by active practitioners**, not registrations. Full events are capped at capacity.
+2. **New members in expansion cities:** each CM has a short list of expansion cities, with a target of new qualified, onboarded members per city (the plan says 5). Anjie's are Columbus, Cleveland, Cincinnati, Providence and Philadelphia.
+3. **Member engagement (from Q1 2027):** measured with MEQ; targets to be set (MQ-21).
 
-Achievement = actual ÷ target per goal, uncapped; bonus = (50% × attendance + 50% × new members) × quarterly target.
+None of this exists in any system today: EventFlow has no attendance goals, no "active practitioner" flag, and no expansion cities. MQ-18, MQ-19 and MQ-21 add them; MQ-20 shows them per quarter and per year.
 
-None of this exists in any system today: EventFlow has no attendance goals, no "active practitioner" flag, and no expansion cities. MQ-18 to MQ-21 add them.
+### Anti-Summits (explained)
+
+The **v1** plan gave each **Anti-Summit** (the larger flagship events) its own targets, separate from dinners: **50 total attendees, 12 qualified non-member attendees, and 6 new members** per Anti-Summit. The v2 draft dropped the separate non-member and new-member targets for dinners and left a note asking whether those Anti-Summit targets carry over. If they do, MEQ tracks them as a separate line under event attendance; if not, Anti-Summits are measured like any other event (or not at all).
 
 ## What the review found
 
 1. **Virtual events already count in engagement, at full dinner weight.** In the last 90 days that was **615 virtual attendances vs 180 in person**. MQ-7 takes virtual out of the score.
-2. **Engagement tiers are relative.** The top 10% are always Champions, so the share of "engaged" members across the organization stays fixed by construction and can't improve. A bonus goal needs an absolute measure (MQ-21).
+2. **Engagement tiers are relative.** The top 10% are always Champions, so the share of "engaged" members across the organization stays fixed by construction and can't improve. An engagement goal needs an absolute measure (MQ-21).
 3. **Circle's API has login data:** `accepted_invitation` (first login), `last_seen_at` (last visit), plus post and comment counts. CircleHub already reads these records; nothing stores them yet.
 4. **Slack and Circle can be told apart**, but Circle is small: about 290 Circle messages since April vs 9,700 from Slack.
 5. **MEQ's roster is only Active members** (2,268). Prospects (about 580) and Pending (about 15) live in EventFlow but not in MEQ, so the New Members funnel needs them added (MQ-10).
 6. **Funnel dates:** `date_joined` is 100% filled; `application_date` 70% for recent joiners.
 7. **MEQ doesn't yet know which CM is signed in** (MQ-3).
 8. **Scoring changes reset comparisons.** Annotate the trend charts and tell the CMs whenever weights change.
+9. **EventFlow already stores each event's capacity and a waitlist**, so MEQ can tell when an event was full.
 
 ---
 
@@ -58,30 +73,34 @@ None of this exists in any system today: EventFlow has no attendance goals, no "
 **MQ-3 · Know which CM is signed in** · S · P1 · Ready · *enabler*
 - Add each staff member's sign-in email; CMs default to their own region(s) with a switch to see all; non-CM staff see all regions.
 
-### Dashboard and the bonus plan
+**MQ-22 · Hand Southeast to the new CM** · S · P1 · Ready (when they start)
+- Add them in Admin → Staff, assign Southeast, and leave Sean on Global only. Update EventFlow's copy of the region model at the same time (Southeast's CM name and Slack mention in its needs-attention alerts).
+
+### Dashboard and performance goals
 
 **MQ-6 · CM Dashboard** · M · P1 · Decided
 - For the signed-in CM's region. Every number shows a **trend line** (by week within the quarter, and by quarter), not just today's value:
-  1. **Bonus progress this quarter:** projected achievement across both goals, the way the bonus is calculated (MQ-20).
-  2. **Event attendance vs goal:** this quarter's events, each actual attendance against its city's goal, plus **upcoming events with registrations vs goal**, so a CM can see which dinners need more people while there is still time (MQ-19).
+  1. **Goals at a glance:** progress on each goal, this quarter and this year to date, side by side. No combined score.
+  2. **Event attendance vs goal:** this quarter's events, each with actual attendance, its goal, and whether it was full. Plus **upcoming events with registrations vs goal**, so a CM can see which dinners need more people while there is still time (MQ-19).
   3. **New members in expansion cities:** count vs target, per city (MQ-18).
-  4. **Member engagement:** the region's share of members actively participating (MQ-21). This becomes a bonus goal in Q1 2027, so its trend is worth showing now.
+  4. **Member engagement:** the region's share of members actively participating (MQ-21). Becomes a goal in Q1 2027, so its trend is worth showing now.
   5. **New-member activation:** share of members joined in the last 90 days who have started participating (MQ-12).
   6. **Needs attention:** how many members are waiting in My Priorities, with a link.
 - "All regions" view for non-CM staff.
 
 **MQ-18 · Expansion cities per CM** · S · P1 · Needs decision
-- Admin page to assign each CM's expansion cities and the per-city target (5). Counts new members by Closest Major City and the date they became Active.
-- Needs: expansion city lists for Brandy, Madi and Sean (Anjie's are in the plan); whether the 5-member goal is per quarter or per year.
+- Admin page to assign each CM's expansion cities and a target per city, for the quarter and for the year (default 5 from the plan). Counts new members by Closest Major City and the date they became Active (until "onboarded" is defined, MQ-12).
+- Needs: expansion city lists for Brandy and Madi, and for the new Southeast CM once they start (Anjie's are in the plan). Global has none unless the team adds some.
 
-**MQ-19 · Event attendance goals** · M · P1 · Needs decision
-- For each Networking Dinner and Experience Event in a region: the goal from its city's member count (10, 15, 20 or 25), actual attendance, and achievement. Registrations vs goal for upcoming events.
-- Needs: a definition of **active practitioner**. Proposed: attendees who are practicing security leaders, excluding sponsors, vendors and Confide staff. Also whether the v1 Anti-Summit goals carry into v2 (the plan marks this TBD).
-- Note: the "members in city" count used for the goal can come from MEQ, the same number CMs see.
+**MQ-19 · Event attendance goals** · M · P1 · Decided
+- For each Networking Dinner and Experience Event in a region: the goal from its city's member count (10, 15, 20 or 25), actual attendance by active practitioners, and capacity. Events that reached capacity (full or waitlisted) are marked **Full** and their goal is capped at capacity. Registrations vs goal for upcoming events.
+- **Active practitioner:** practicing security leaders only. Determined from the attendee's contact record; sponsors, vendors, Confide staff and guests are excluded. During the build, confirm how EventFlow tags sponsors and vendors.
+- The "members in city" count used for the goal comes from MEQ, the same number CMs see.
+- Open: whether the v1 Anti-Summit targets carry over (see "Anti-Summits" above). Dinners can be built without it.
 
-**MQ-20 · Quarterly bonus scorecard** · M · P1 · Ready (after MQ-18, MQ-19)
-- Per CM per quarter: attendance achievement, new-member achievement, combined achievement, uncapped, computed exactly as the plan describes, with past quarters for comparison. Shown on the Dashboard and in an all-CM view for managers.
-- Open: show the estimated bonus in dollars, or achievement percentages only? (The plan's amounts are still TBD.)
+**MQ-20 · Goal scorecard, by quarter and year** · M · P1 · Ready (after MQ-18, MQ-19)
+- Per CM, per goal: actual vs target for this quarter, this year to date, and past periods for comparison. Shown on the Dashboard and in an all-CM view for managers, which is what the year-end review uses.
+- No bonus formula, weighting, combined score or dollars.
 
 **MQ-21 · An engagement measure that can improve** · S · P1 · Needs decision
 - Tiers are relative (finding 2), so the 2027 engagement goal needs an absolute measure. Proposed: **share of the region's members who participated in the last 90 days** (attended a live event, posted on Slack or Circle, or visited Circle). Easy to explain, can rise or fall, and comparable across regions.
@@ -128,7 +147,7 @@ None of this exists in any system today: EventFlow has no attendance goals, no "
 
 **MQ-12 · Define "Onboarded" and "Activated"** · Needs decision (team)
 - Lifecycle today: Prospect → Pending (asked to join) → Active (completed the onboarding form).
-- **Onboarded:** left for the team to decide.
+- **Onboarded:** left for the team to decide. It also decides when a new member counts toward the expansion-city goal (MQ-18).
 - **Activated:** proposed as first real participation (a live event, a Slack/Circle post, or a Circle login) within 30 days of becoming Active. Used by My Priorities, the Dashboard and the funnel.
 
 ### Regions
@@ -152,20 +171,19 @@ None of this exists in any system today: EventFlow has no attendance goals, no "
 
 ## Open questions
 
-1. **Expansion cities** for Brandy, Madi and Sean, and whether the 5-member goal is per quarter or per year. (MQ-18)
-2. **Active practitioner:** agree the proposed definition. (MQ-19)
-3. **Anti-Summits:** do the v1 goals carry into v2? (MQ-19)
+1. **Expansion cities** for Brandy and Madi, and for the new Southeast CM once they start. (MQ-18)
+2. **Anti-Summits:** do the v1 targets (50 attendees, 12 qualified non-members, 6 new members per Anti-Summit) carry over? (MQ-19)
+3. **Full events:** confirm that an event at capacity has its goal capped at capacity. (MQ-19)
 4. **Engagement goal:** agree the proposed measure; set targets before Q1 2027. (MQ-21)
-5. **Bonus dollars:** show estimated dollars on the Dashboard, or percentages only? (MQ-20)
-6. **Onboarded:** team to define. (MQ-12)
-7. **Activated:** confirm the proposed definition. (MQ-12)
+5. **Onboarded:** team to define. (MQ-12)
+6. **Activated:** confirm the proposed definition. (MQ-12)
 
 ---
 
 ## Suggested order
 
-1. **Foundation:** MQ-1, MQ-2, MQ-3, MQ-7. Start MQ-11 early so Circle login history builds up.
-2. **Bonus-plan Dashboard:** MQ-18, MQ-19, MQ-21, MQ-20, then MQ-6. Ready before the v2 plan takes effect and well before Q1 2027.
+1. **Foundation:** MQ-1, MQ-2, MQ-3, MQ-7. Start MQ-11 early so Circle login history builds up. MQ-22 when the new Southeast CM starts.
+2. **Goals Dashboard:** MQ-18, MQ-19, MQ-21, MQ-20, then MQ-6. Ready well before Q1 2027.
 3. **Daily CM workflow:** MQ-5 My Priorities, MQ-4 Members.
 4. **Scoring:** MQ-8 channels, MQ-9 attended-out-of-invited.
 5. **New members:** MQ-12 decisions, then MQ-10.
