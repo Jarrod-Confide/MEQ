@@ -2,15 +2,42 @@ import { fetchDashboard } from "@/lib/dashboard-data";
 import { QUALITY_TIER_ORDER, TIER_COLOR as QUALITY_TIER_COLOR } from "@/lib/quality-tiers";
 import { TIER_COLOR as ENGAGEMENT_TIER_COLOR } from "@/components/engagement-ui";
 import { TIERS } from "@/lib/engagement";
-import { LineChart, ChartLegend } from "@/components/charts";
+import { BarChart, LineChart } from "@/components/charts";
+import Link from "next/link";
+import { getViewer } from "@/lib/viewer";
+import { resolveScope, scopeLabel, scopeParam, type Scope } from "@/lib/scope";
+import {
+  DIMENSIONS,
+  TREND_METRICS,
+  TREND_SPANS,
+  getEngagementTrend,
+  metricLabel,
+  parseMetric,
+  type TrendMetric,
+} from "@/lib/engagement-trend";
+import { TERRITORY_COLOR, TERRITORY_LABEL, TERRITORY_ORDER } from "@/lib/territory";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 export const revalidate = 300;
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ metric?: string; region?: string; span?: string }>;
+}) {
+  const params = await searchParams;
+  // Sequential, not Promise.all: fetchDashboard already runs waves of 4, and
+  // stacking more queries beside it wedges the pool (see lib/db.ts).
+  const viewer = await getViewer();
   const d = await fetchDashboard();
-  const maxBar = Math.max(1, ...d.monthlyJoins.map((m) => m.count));
+  const metric = parseMetric(params.metric);
+  const scope: Scope = resolveScope(params.region ?? "all", viewer);
+  const span = TREND_SPANS.some((x) => x.key === params.span) ? (params.span as string) : "26";
+  const qs = (over: Record<string, string>) => {
+    const p = new URLSearchParams({ metric, region: scopeParam(scope), span, ...over });
+    return `/dashboard?${p.toString()}#trend`;
+  };
   const trendStr =
     d.trend30dPct == null
       ? "—"
@@ -31,7 +58,7 @@ export default async function DashboardPage() {
           <div className="text-[12px] uppercase tracking-[0.05em] text-[#9bb0d4]">
             MEQ · Member Engagement and Quality
           </div>
-          <h1 className="m-0 text-xl font-semibold">Membership Dashboard</h1>
+          <h1 className="m-0 text-xl font-semibold">Membership Overview</h1>
         </div>
         <div className="text-[11px] text-[#6a7da0]">
           {d.syncedAt ? `synced ${new Date(d.syncedAt).toLocaleString()}` : "—"}
@@ -59,63 +86,21 @@ export default async function DashboardPage() {
             <h2 className="m-0 text-[13px] uppercase tracking-wide text-[#9bb0d4]">
               New members per month
             </h2>
-            <span className="text-[11px] text-[#6a7da0]">last 12 months</span>
+            <Link href="/new-members" prefetch={false} className="text-[12px] text-[#8ab4ff] hover:underline">
+              By day, week or quarter →
+            </Link>
           </div>
-          <div className="flex h-32 items-end gap-1 sm:gap-2">
-            {d.monthlyJoins.map((m) => {
-              const h = Math.round((m.count / maxBar) * 100);
-              return (
-                <div key={m.month} className="flex min-w-0 flex-1 flex-col items-center">
-                  <div
-                    className="flex w-full items-end justify-center rounded-t bg-[#8ab4ff] transition-all"
-                    style={{ height: `${Math.max(2, h)}%`, opacity: 0.5 + (h / 100) * 0.5 }}
-                    title={`${m.month}: ${m.count}`}
-                  />
-                  <div className="mt-1 text-[10px] tabular-nums text-[#cfdaee]">
-                    {m.count > 0 ? m.count : ""}
-                  </div>
-                  <div className="text-[10px] text-[#6a7da0]">
-                    {m.month.slice(5)}<span className="hidden sm:inline">/{m.month.slice(2, 4)}</span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          <BarChart
+            items={d.monthlyJoins.map((m) => ({
+              label: `${m.month.slice(5)}/${m.month.slice(2, 4)}`,
+              value: m.count,
+            }))}
+            height={150}
+          />
         </section>
 
-        {/* Engagement trend (from weekly snapshots) */}
-        {d.engagementTrend.length > 1 && (
-          <section className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-            <div className="rounded-lg border border-[#1f2a3d] bg-[#111726] p-5">
-              <div className="mb-3 flex items-baseline justify-between">
-                <h2 className="m-0 text-[13px] uppercase tracking-wide text-[#9bb0d4]">
-                  Scored members & Active+ over time
-                </h2>
-                <span className="text-[11px] text-[#6a7da0]">snapshots weekly (Mondays)</span>
-              </div>
-              <LineChart
-                labels={d.engagementTrend.map((p) => p.week.slice(5))}
-                series={[
-                  { label: "Scored", color: "#8ab4ff", points: d.engagementTrend.map((p) => p.scored) },
-                  { label: "Active+", color: "#22c55e", points: d.engagementTrend.map((p) => p.activePlus) },
-                ]}
-              />
-              <ChartLegend items={[{ label: "Scored members", color: "#8ab4ff" }, { label: "Active+ (Champion+Active)", color: "#22c55e" }]} />
-            </div>
-            <div className="rounded-lg border border-[#1f2a3d] bg-[#111726] p-5">
-              <div className="mb-3 flex items-baseline justify-between">
-                <h2 className="m-0 text-[13px] uppercase tracking-wide text-[#9bb0d4]">
-                  Average engagement over time
-                </h2>
-                <span className="text-[11px] text-[#6a7da0]">snapshots weekly (Mondays)</span>
-              </div>
-              <LineChart
-                labels={d.engagementTrend.map((p) => p.week.slice(5))}
-                series={[{ label: "Avg", color: "#a78bfa", points: d.engagementTrend.map((p) => p.avgTotal) }]}
-              />
-            </div>
-          </section>
-        )}
+        {/* Engagement over time: pick the measure, region and span */}
+        <EngagementExplorer metric={metric} scope={scope} span={span} qs={qs} />
 
         {/* Tier mixes */}
         <section className="grid grid-cols-1 gap-3 lg:grid-cols-2">
@@ -295,5 +280,116 @@ function TopList({ title, rows }: { title: string; rows: { name: string; count: 
         </ul>
       )}
     </div>
+  );
+}
+
+async function EngagementExplorer({
+  metric,
+  scope,
+  span,
+  qs,
+}: {
+  metric: TrendMetric;
+  scope: Scope;
+  span: string;
+  qs: (over: Record<string, string>) => string;
+}) {
+  const points = await getEngagementTrend(metric, scope, span);
+  const pct = metric === "participating";
+  const values = points.map((p) => p.value);
+  const first = values[0];
+  const last = values[values.length - 1];
+  const delta = points.length > 1 ? Math.round((last - first) * 10) / 10 : null;
+  return (
+    <section id="trend" className="rounded-lg border border-[#1f2a3d] bg-[#111726] p-5">
+      <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+        <h2 className="m-0 text-[13px] uppercase tracking-wide text-[#9bb0d4]">
+          {metricLabel(metric)} over time · {scopeLabel(scope)}
+        </h2>
+        <span className="text-[11px] text-[#6a7da0]">weekly snapshots (Mondays), members only</span>
+      </div>
+
+      <div className="space-y-2 text-[12px]">
+        <ChipRow label="Measure">
+          {TREND_METRICS.map((m) => (
+            <Chip key={m.key} href={qs({ metric: m.key })} active={metric === m.key} label={m.label} title={m.note} />
+          ))}
+        </ChipRow>
+        <ChipRow label="Dimension">
+          {DIMENSIONS.map((dim) => (
+            <Chip key={dim} href={qs({ metric: `dim:${dim}` })} active={metric === `dim:${dim}`} label={dim[0].toUpperCase() + dim.slice(1)} />
+          ))}
+        </ChipRow>
+        <ChipRow label="Region">
+          <Chip href={qs({ region: "all" })} active={scope === "ALL"} label="All" />
+          {TERRITORY_ORDER.map((t) => (
+            <Chip key={t} href={qs({ region: t })} active={scope !== "ALL" && scope.length === 1 && scope[0] === t} label={TERRITORY_LABEL[t]} color={TERRITORY_COLOR[t]} />
+          ))}
+        </ChipRow>
+        <ChipRow label="Period">
+          {TREND_SPANS.map((x) => (
+            <Chip key={x.key} href={qs({ span: x.key })} active={span === x.key} label={x.label} />
+          ))}
+        </ChipRow>
+      </div>
+
+      {points.length > 1 ? (
+        <div className="mt-4">
+          <div className="mb-2 flex flex-wrap items-baseline gap-3">
+            <b className="text-[24px] tabular-nums text-white">{last}{pct ? "%" : ""}</b>
+            {delta != null && (
+              <span className="text-[12px]" style={{ color: delta >= 0 ? "#22c55e" : "#ef4444" }}>
+                {delta >= 0 ? "▲" : "▼"} {Math.abs(delta)}{pct ? " pts" : ""} since {points[0].week}
+              </span>
+            )}
+          </div>
+          <LineChart
+            labels={points.map((p) => p.week.slice(5))}
+            series={[{ label: metricLabel(metric), color: "#a78bfa", points: values }]}
+            yMax={pct || metric.startsWith("dim:") ? 100 : undefined}
+            height={180}
+          />
+        </div>
+      ) : (
+        <p className="mt-4 text-[12px] text-[#6a7da0]">
+          {pct
+            ? "% participating fills in from the weekly snapshots taken since 8 October (one point per Monday)."
+            : "Not enough weekly snapshots for this view yet."}
+        </p>
+      )}
+      <p className="mb-0 mt-3 text-[11px] text-[#6a7da0]">
+        Scores are relative (normalised to the most engaged members), so counts and % participating are the better
+        guide to whether engagement is growing. Scoring changed on 8 October 2026 (virtual events weighted), so earlier
+        weeks used the previous rules.
+      </p>
+    </section>
+  );
+}
+
+function ChipRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      <span className="w-20 shrink-0 text-[11px] uppercase tracking-wide text-[#6a7da0]">{label}</span>
+      {children}
+    </div>
+  );
+}
+
+function Chip({ href, active, label, color, title }: { href: string; active: boolean; label: string; color?: string; title?: string }) {
+  return (
+    <Link
+      href={href}
+      prefetch={false}
+      scroll={false}
+      title={title}
+      className={
+        active
+          ? "flex items-center gap-1.5 rounded-md border border-[#8ab4ff] bg-[#1a2238] px-2.5 py-1 text-white"
+          : "flex items-center gap-1.5 rounded-md border border-[#2d3d5c] px-2.5 py-1 text-[#9bb0d4] hover:bg-[#1a2238] hover:text-white"
+      }
+    >
+      {color && <span className="inline-block h-2 w-2 rounded-full" style={{ background: color }} />}
+      {label}
+    </Link>
   );
 }

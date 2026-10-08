@@ -85,7 +85,8 @@ export default async function EventsPage({
   const periodKey: PeriodKey = period === "up" || period === "lq" || period === "y" || period === "all" ? period : "q";
   const p = periodFor(periodKey, now);
 
-  const [viewer, { events: all }] = await Promise.all([getViewer(), getEvents()]);
+  const viewer = await getViewer(); // first: keeps concurrent queries within the pool (lib/db.ts)
+  const { events: all } = await getEvents();
   const scope: Scope = resolveScope(region ?? "all", viewer);
   // Virtual events belong to every region, so they appear in the all-regions view only.
   const inScope = eventsInScope(all, scope);

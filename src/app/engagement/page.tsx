@@ -8,6 +8,25 @@ import { TIER_COLOR } from "@/components/engagement-ui";
 import { fetchQualityByEventflowId } from "@/lib/quality-data";
 import { fetchFlagByEventflowId } from "@/lib/members";
 import { AlgorithmInfo } from "@/components/AlgorithmInfo";
+import { getJoinedMembers } from "@/lib/new-members-data";
+
+const JOINED_PRESETS = [
+  { key: "30", label: "Last 30 days" },
+  { key: "90", label: "Last 90 days" },
+  { key: "180", label: "Last 6 months" },
+  { key: "365", label: "Last year" },
+] as const;
+
+/** ?joined=N (last N days) or ?since=YYYY-MM-DD → the earliest join date to keep, or null for everyone. */
+function joinedCutoff(joined: string | undefined, since: string | undefined): Date | null {
+  if (since && /^\d{4}-\d{2}-\d{2}$/.test(since)) {
+    const d = new Date(`${since}T00:00:00Z`);
+    if (!isNaN(d.getTime())) return d;
+  }
+  const n = Number(joined);
+  if (JOINED_PRESETS.some((p) => p.key === joined) && n > 0) return new Date(Date.now() - n * 86400000);
+  return null;
+}
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -15,21 +34,30 @@ export const maxDuration = 60;
 export default async function EngagementPage({
   searchParams,
 }: {
-  searchParams: Promise<{ days?: string }>;
+  searchParams: Promise<{ days?: string; joined?: string; since?: string }>;
 }) {
-  const { days: daysParam } = await searchParams;
+  const { days: daysParam, joined, since } = await searchParams;
   const days = WINDOWS.some((w) => String(w.days) === daysParam)
     ? Number(daysParam)
     : 90;
-  const [data, qualityByEf, flagByEf] = await Promise.all([
+  const cutoff = joinedCutoff(joined, since);
+  const [data, qualityByEf, flagByEf, joinedMembers] = await Promise.all([
     getFullLeaderboard(days),
     fetchQualityByEventflowId(),
     fetchFlagByEventflowId(),
+    cutoff ? getJoinedMembers() : Promise.resolve([]),
   ]);
+  // Members who joined on or after the cutoff (by EventFlow contact id).
+  const recentEf = cutoff
+    ? new Set(joinedMembers.filter((m) => m.efId && new Date(m.joinedAt) >= cutoff).map((m) => m.efId as string))
+    : null;
+  const joinedQs = since ? `&since=${since}` : joined ? `&joined=${joined}` : "";
   const activePct = data.total ? Math.round((data.activeCount / data.total) * 100) : 0;
 
   // Decorate each member with quality + country flag (when matched to a contact).
-  const enrichedMembers = data.members.map((m) => {
+  const enrichedMembers = data.members
+    .filter((m) => !recentEf || (m.key.startsWith("c:") && recentEf.has(m.key.slice(2))))
+    .map((m) => {
     if (m.key.startsWith("c:")) {
       const ef = m.key.slice(2);
       const q = qualityByEf.get(ef);
@@ -65,7 +93,8 @@ export default async function EngagementPage({
             {WINDOWS.map((w) => (
               <Link
                 key={w.days}
-                href={`/engagement?days=${w.days}`}
+                prefetch={false}
+                href={`/engagement?days=${w.days}${joinedQs}`}
                 className={`rounded-md px-2.5 py-1 text-[13px] ${
                   w.days === days
                     ? "bg-[#8ab4ff] text-[#0b0f17]"
@@ -109,10 +138,53 @@ export default async function EngagementPage({
           normalized to the 95th-percentile member.
         </p>
 
+        {/* Joined filter */}
+        <div className="mb-5 flex flex-wrap items-end gap-2 text-[12px]">
+          <span className="mb-1.5 mr-1 text-[12px] uppercase tracking-wide text-[#9bb0d4]">Joined</span>
+          <JoinedChip href={`/engagement?days=${days}`} active={!cutoff} label="Any time" />
+          {JOINED_PRESETS.map((p) => (
+            <JoinedChip key={p.key} href={`/engagement?days=${days}&joined=${p.key}`} active={!since && joined === p.key} label={p.label} />
+          ))}
+          <form action="/engagement" className="flex items-end gap-2">
+            <input type="hidden" name="days" value={days} />
+            <label className="text-[11px] uppercase tracking-wide text-[#9bb0d4]">
+              Since
+              <input
+                type="date"
+                name="since"
+                defaultValue={since ?? ""}
+                className="mt-1 block rounded-md border border-[#2d3d5c] bg-[#0b0f17] px-2 py-1 text-[13px] text-white [color-scheme:dark]"
+              />
+            </label>
+            <button type="submit" className="rounded-md border border-[#2d3d5c] px-2.5 py-1 text-[13px] text-[#8ab4ff] hover:bg-[#1a2238]">Apply</button>
+          </form>
+          {cutoff && (
+            <span className="mb-1.5 ml-2 text-[#9bb0d4]">
+              <b className="text-white">{enrichedMembers.length}</b> members joined since {cutoff.toISOString().slice(0, 10)}
+            </span>
+          )}
+        </div>
+
         <AlgorithmInfo />
 
         <EngagementTable members={enrichedMembers} />
       </main>
     </div>
+  );
+}
+
+function JoinedChip({ href, active, label }: { href: string; active: boolean; label: string }) {
+  return (
+    <Link
+      href={href}
+      prefetch={false}
+      className={
+        active
+          ? "rounded-md border border-[#8ab4ff] bg-[#1a2238] px-2.5 py-1 text-white"
+          : "rounded-md border border-[#2d3d5c] px-2.5 py-1 text-[#9bb0d4] hover:bg-[#1a2238] hover:text-white"
+      }
+    >
+      {label}
+    </Link>
   );
 }

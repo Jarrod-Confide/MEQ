@@ -114,3 +114,60 @@ export function ChartLegend({ items }: { items: { label: string; color: string }
     </div>
   );
 }
+
+/**
+ * Vertical bars with value labels (when they fit) and thinned x labels.
+ * Bars are <title>d so hovering shows the exact count.
+ */
+export function BarChart({
+  items,
+  height = 180,
+  color = "#8ab4ff",
+  suffix = "",
+}: {
+  items: { label: string; value: number; title?: string }[];
+  height?: number;
+  color?: string;
+  suffix?: string;
+}) {
+  const W = 800;
+  const H = height;
+  const padL = 30;
+  const padB = 20;
+  const padT = 16;
+  const n = Math.max(1, items.length);
+  const innerW = W - padL - 6;
+  const innerH = H - padB - padT;
+  const max = Math.max(1, ...items.map((i) => i.value));
+  const slot = innerW / n;
+  const bw = Math.max(1, slot * 0.72);
+  const y = (v: number) => padT + innerH - (v / max) * innerH;
+  const showValues = n <= 40;
+  const every = Math.ceil(n / 10); // ~10 x labels
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} className="w-full" preserveAspectRatio="none" style={{ height }} role="img">
+      {[0, 0.5, 1].map((f) => (
+        <g key={f}>
+          <line x1={padL} x2={W - 6} y1={padT + innerH * (1 - f)} y2={padT + innerH * (1 - f)} stroke="#1f2a3d" />
+          <text x={2} y={padT + innerH * (1 - f) + 3} fontSize="10" fill="#6a7da0">{Math.round(max * f)}</text>
+        </g>
+      ))}
+      {items.map((it, i) => {
+        const x = padL + slot * i + (slot - bw) / 2;
+        return (
+          <g key={i}>
+            <rect x={x} y={y(it.value)} width={bw} height={padT + innerH - y(it.value)} fill={color} rx={bw > 6 ? 2 : 0}>
+              <title>{it.title ?? `${it.label}: ${it.value}${suffix}`}</title>
+            </rect>
+            {showValues && it.value > 0 && (
+              <text x={x + bw / 2} y={y(it.value) - 3} fontSize="10" fill="#cfdaee" textAnchor="middle">{it.value}{suffix}</text>
+            )}
+            {i % every === 0 && (
+              <text x={x + bw / 2} y={H - 5} fontSize="10" fill="#6a7da0" textAnchor="middle">{it.label}</text>
+            )}
+          </g>
+        );
+      })}
+    </svg>
+  );
+}

@@ -47,13 +47,14 @@ Navigation is a sidebar (`src/components/Sidebar.tsx`, rendered by the root layo
 | `/` | **Dashboard**: goals at a glance (event attendance, new members in expansion cities, member engagement), each as goal and stretch, this quarter and year; trends; this quarter's events; needs-attention count. Opens on the signed-in CM's region(s); `?region=all\|NE\|…` |
 | `/events` | Every event type, upcoming and held, by period and region: registrations so far and attendance against goal |
 | `/outreach` | **My Priorities** (CM worklists, CSV export) |
-| `/engagement`, `/engagement/[key]` | **Members**: leaderboard and member profile |
+| `/new-members` | **New Members**: joins by day/week/month/quarter over any date range and region; time from joining to first engagement, with a choosable definition (in-person, virtual, post, reaction) |
+| `/engagement`, `/engagement/[key]` | **Members**: leaderboard (filter by join date: `?joined=30` or `?since=YYYY-MM-DD`) and member profile (event history with name, type and city) |
 | `/quality` | Quality scores (linked from Members) |
 | `/territory` | **Regions**: comparison across the five regions |
 | `/territory/[region]` | One region: stats, hotspot map (4-week city trend), sortable member table |
 | `/territory/map` | US map coloured by region |
 | `/map` | Member map (bubbles by closest major city) |
-| `/dashboard` | Membership overview (joins, tiers, composition) |
+| `/dashboard` | **Membership overview** (joins, tiers, composition) and an engagement-over-time explorer: measure, dimension, region and period |
 | `/admin` | **Admin** (admins only): Setup, Expansion cities, Staff & referrals, Admins, Unmatched cities |
 | `/api/health` | Public health check for Confide Heartbeat (see Monitoring) |
 | `/api/v1/member-stats` | Per-member tier, Slack activity, referrals and region for EventFlow (bearer `MEQ_TOKEN_EVENTFLOW`) |
@@ -106,6 +107,7 @@ The leaderboard is computed by a cron every 10 minutes and stored in `engagement
 | Schedule (UTC) | Route | What |
 |---|---|---|
 | every 10 min | `/api/cron/refresh-engagement` | Recompute and store the leaderboard |
+| hourly at :20 | `/api/cron/refresh-milestones` | Each member's first engagement after joining, per channel (`member_milestones`) |
 | 06:00 daily | `/api/cron/sync-members` | Roster from EventFlow, HubSpot quality, referral resolution |
 | 06:30 daily | `/api/cron/score-messages` | Score new Slack/Circle messages with Haiku |
 | 07:00 Mondays | `/api/cron/snapshot` | Weekly engagement snapshot (powers trends) |
@@ -119,7 +121,7 @@ Run one by hand: `curl -H "Authorization: Bearer $CRON_SECRET" https://meq.confi
 
 ## Database
 
-MEQ's own tables (`src/lib/db/schema.ts`): `members`, `member_quality`, `message_scores`, `member_engagement_snapshots`, `member_sync_runs`, `staff`, `member_referrals`, `engagement_cache`, `admins`, `app_settings`, `expansion_cities`.
+MEQ's own tables (`src/lib/db/schema.ts`): `members`, `member_quality`, `message_scores`, `member_engagement_snapshots`, `member_sync_runs`, `staff`, `member_referrals`, `engagement_cache`, `admins`, `app_settings`, `expansion_cities`, `member_milestones`.
 
 **Always migrate with `npm run db:migrate`**, which also enables row-level security on new tables. Deploy order matters: a migration that *adds* a column the code needs runs **before** the deploy; one that *drops* a column runs **after** the code stops using it.
 
@@ -130,7 +132,7 @@ MEQ's own tables (`src/lib/db/schema.ts`): `members`, `member_quality`, `message
 ## Gotchas learned the hard way
 
 1. **Never put a JavaScript `Date` inside a raw `sql` template.** postgres-js throws a `Buffer.byteLength` error. Pass `.toISOString()`.
-2. **Keep page query batches small.** Database pools are `max: 5`; a single `Promise.all` of 10+ queries wedged the pool and hung `/dashboard`. Fetch in waves of four or fewer.
+2. **Keep page query batches small.** Database pools are `max: 5`; a single `Promise.all` of 10+ queries wedged the pool and hung `/dashboard`. Fetch in waves of four or fewer, and count the root layout's `getViewer()` too: on 2026-10-08 running `getViewer()` beside `fetchDashboard()` hung `/dashboard` for 48 s. Await the viewer first.
 3. **`prefetch={false}` on nav and table links.** Next.js prefetching rendered every visible member profile in the background and saturated the database poolers.
 4. **Bump `ENGAGEMENT_CACHE_VERSION`** whenever the shape of the engagement result changes; Vercel's data cache survives deploys.
 5. **Map tiles are OpenStreetMap**, dark-toned by CSS. CARTO's tiles now need an API key.

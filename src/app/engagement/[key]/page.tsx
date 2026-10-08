@@ -12,6 +12,14 @@ export const dynamic = "force-dynamic";
 
 const DIMS = Object.keys(DIMENSION_WEIGHTS) as Dimension[];
 
+/** EventFlow attendee statuses in plain words. */
+const STATUS_LABEL: Record<string, string> = {
+  pending_review: "pending",
+  no_show: "no-show",
+  drop_off: "late drop-off",
+  waitlisted: "waitlist",
+};
+
 export default async function MemberDetailPage({
   params,
   searchParams,
@@ -177,10 +185,15 @@ export default async function MemberDetailPage({
                 key={i}
                 className="flex items-center justify-between border-b border-[#161e2e] bg-[#111726] px-4 py-2.5 text-[13px] last:border-b-0"
               >
-                <span className="text-[#cfdaee]">{e.title}</span>
-                <span className="flex items-center gap-3">
+                <span className="min-w-0">
+                  <span className="block text-[#cfdaee]">{e.title}</span>
+                  <span className="block text-[11px] text-[#6a7da0]">
+                    {[e.type, e.isVirtual ? "virtual" : e.city].filter(Boolean).join(" · ")}
+                  </span>
+                </span>
+                <span className="flex shrink-0 items-center gap-3">
                   <span className="text-[#6a7da0]">
-                    {new Date(e.startsAt).toLocaleDateString()}
+                    {new Date(e.startsAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" })}
                   </span>
                   <span
                     className="rounded px-1.5 py-0.5 text-[11px]"
@@ -189,7 +202,7 @@ export default async function MemberDetailPage({
                       color: e.status === "attended" ? "#22c55e" : "#9bb0d4",
                     }}
                   >
-                    {e.status}
+                    {STATUS_LABEL[e.status] ?? e.status}
                   </span>
                 </span>
               </li>

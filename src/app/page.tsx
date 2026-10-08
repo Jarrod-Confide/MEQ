@@ -36,7 +36,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const quarters = lastQuarters(now, 4);
 
   // Waves of ≤4 queries (see db.ts): viewer + events, then the rest.
-  const [viewer, eventData] = await Promise.all([getViewer(), getEvents()]);
+  const viewer = await getViewer(); // first: keeps concurrent queries within the pool (lib/db.ts)
+  const eventData = await getEvents();
   const scope: Scope = resolveScope(region, viewer);
   const [cities, share, shareTrend, outreach] = await Promise.all([
     getExpansionProgress(q, y, quarters),
@@ -74,11 +75,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
   return (
     <div className="min-h-screen">
-      <PageHeader title={`Dashboard · ${scopeLabel(scope)}`}>
-        <Link href="/dashboard" prefetch={false} className="text-[12px] text-[#6a7da0] hover:text-[#8ab4ff]">
-          Membership overview →
-        </Link>
-      </PageHeader>
+      <PageHeader title={`Dashboard · ${scopeLabel(scope)}`} />
 
       <main className="space-y-6 px-4 py-5 md:px-6">
         {/* Scope switch */}

@@ -328,6 +328,24 @@ export const expansionCities = pgTable("expansion_cities", {
 
 export type ExpansionCity = typeof expansionCities.$inferSelect;
 
+/**
+ * Each member's first engagement after becoming Active, per channel, so MEQ
+ * can measure time-to-engage under whatever definition the team settles on
+ * (the page picks which channels count). Recomputed hourly by
+ * /api/cron/refresh-milestones from EventFlow + Slackle; never in a page.
+ * Dates are the first activity on or after the day the member joined.
+ */
+export const memberMilestones = pgTable("member_milestones", {
+  memberId: uuid("member_id")
+    .primaryKey()
+    .references(() => members.id, { onDelete: "cascade" }),
+  firstEventAt: timestamp("first_event_at", { withTimezone: true }), // in-person event attended
+  firstVirtualAt: timestamp("first_virtual_at", { withTimezone: true }), // virtual event attended
+  firstPostAt: timestamp("first_post_at", { withTimezone: true }), // Slack/Circle post or reply
+  firstReactionAt: timestamp("first_reaction_at", { withTimezone: true }), // emoji reaction given
+  computedAt: timestamp("computed_at", { withTimezone: true }).notNull(),
+});
+
 export type MemberEngagementSnapshot = typeof memberEngagementSnapshots.$inferSelect;
 export type NewMemberEngagementSnapshot = typeof memberEngagementSnapshots.$inferInsert;
 export type Staff = typeof staff.$inferSelect;

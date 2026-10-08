@@ -14,6 +14,8 @@ const ITEMS = [
   { href: "/", label: "Dashboard", icon: "M3 13h8V3H3zm10 8h8V11h-8zM3 21h8v-6H3zm10-18v6h8V3z" },
   { href: "/outreach", label: "My Priorities", icon: "M9 11l3 3 8-8M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9" },
   { href: "/engagement", label: "Members", icon: "M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8m14 10v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" },
+  { href: "/new-members", label: "New Members", icon: "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8m10-3v6m3-3h-6" },
+  { href: "/dashboard", label: "Membership overview", icon: "M3 3v18h18M7 15l4-4 3 3 5-6" },
   { href: "/events", label: "Events", icon: "M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2" },
   { href: "/territory", label: "Regions", icon: "M1 6v16l7-4 8 4 7-4V2l-7 4-8-4zM8 2v16M16 6v16" },
   { href: "/admin", label: "Admin", icon: "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6m7.4-3a7.4 7.4 0 0 0-.1-1.2l2-1.6-2-3.4-2.4 1a7 7 0 0 0-2-1.2L14.5 3h-5l-.4 2.6a7 7 0 0 0-2 1.2l-2.4-1-2 3.4 2 1.6a7.4 7.4 0 0 0 0 2.4l-2 1.6 2 3.4 2.4-1a7 7 0 0 0 2 1.2l.4 2.6h5l.4-2.6a7 7 0 0 0 2-1.2l2.4 1 2-3.4-2-1.6c.1-.4.1-.8.1-1.2", adminOnly: true },
@@ -21,7 +23,9 @@ const ITEMS = [
 
 /** Which item a route belongs to (sub-pages light up their parent). */
 export function sectionFor(path: string): string {
-  if (path === "/" || path === "/dashboard") return "/";
+  if (path === "/") return "/";
+  if (path.startsWith("/dashboard")) return "/dashboard";
+  if (path.startsWith("/new-members")) return "/new-members";
   if (path.startsWith("/engagement") || path === "/quality") return "/engagement";
   if (path.startsWith("/territory") || path === "/map") return "/territory";
   if (path.startsWith("/admin")) return "/admin";

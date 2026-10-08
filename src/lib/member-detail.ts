@@ -17,7 +17,10 @@ export type RecentMessage = {
 };
 
 export type EventAttendance = {
-  title: string;
+  title: string; // EventFlow's event name, e.g. "Boston Dinner Sep 30, 2026"
+  type: string | null; // Dinner, Anti-Summit, Case Study, …
+  city: string | null;
+  isVirtual: boolean;
   startsAt: string;
   status: string;
 };
@@ -125,13 +128,23 @@ export async function getMemberDetail(
   // Event attendance history.
   let events: EventAttendance[] = [];
   if (contactId) {
-    const evRows = await eventflowSql<{ title: string | null; starts_at: Date; status: string }[]>`
-      SELECT e.title, e.starts_at, a.status
-      FROM attendees a JOIN events e ON a.event_id = e.id
-      WHERE a.contact_id = ${contactId}
+    // display_name is the event's name; `title` is only the outward subject
+    // line of virtual events (null on dinners), so it rendered "(untitled event)".
+    const evRows = await eventflowSql<
+      { name: string; title: string | null; city: string | null; type: string | null; is_virtual: boolean; starts_at: Date; status: string }[]
+    >`
+      SELECT e.display_name AS name, e.title, NULLIF(trim(e.city), '') AS city, t.name AS type,
+             COALESCE(t.invite_mode = 'gcal_broadcast', false) AS is_virtual, e.starts_at, a.status::text AS status
+      FROM attendees a
+      JOIN events e ON a.event_id = e.id
+      LEFT JOIN event_types t ON t.id = e.event_type_id
+      WHERE a.contact_id = ${contactId} AND NOT e.is_test
       ORDER BY e.starts_at DESC LIMIT 50`;
     events = evRows.map((e) => ({
-      title: e.title ?? "(untitled event)",
+      title: e.is_virtual && e.title ? `${e.name}: ${e.title}` : e.name,
+      type: e.type,
+      city: e.city,
+      isVirtual: e.is_virtual,
       startsAt: safeIso(e.starts_at) ?? "",
       status: e.status,
     }));
