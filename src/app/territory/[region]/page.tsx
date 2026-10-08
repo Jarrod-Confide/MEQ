@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Nav } from "@/components/Nav";
 import { getRegions, getRegionCityTrends } from "@/lib/region-data";
 import { getCmByRegion } from "@/lib/staff";
 import { RegionMemberTable } from "@/components/RegionMemberTable";
@@ -40,7 +39,7 @@ export default async function RegionDetailPage({
 
   return (
     <div className="min-h-screen">
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[#1f2a3d] bg-[#111726] px-6 py-4">
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[#1f2a3d] bg-[#111726] px-4 py-4 md:px-6">
         <div>
           <div className="text-[12px] uppercase tracking-[0.05em] text-[#9bb0d4]">MEQ · Community Manager View</div>
           <h1 className="m-0 flex items-center gap-2 text-xl font-semibold">
@@ -49,11 +48,10 @@ export default async function RegionDetailPage({
             {cm && <span className="text-[13px] font-normal text-[#9bb0d4]">· CM {cm}</span>}
           </h1>
         </div>
-        <Nav current="/territory" />
         <Link href="/territory" className="text-[12px] text-[#8ab4ff] hover:underline">← All regions</Link>
       </header>
 
-      <main className="px-6 py-5 space-y-6">
+      <main className="px-4 py-5 md:px-6 space-y-6">
         {/* Window picker */}
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-[12px] uppercase tracking-wide text-[#9bb0d4]">Engagement window</span>

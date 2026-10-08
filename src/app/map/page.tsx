@@ -1,7 +1,6 @@
 import { fetchMemberMap } from "@/lib/members";
 import { MemberBubbleMap } from "@/components/MemberBubbleMap";
 import { CityList } from "@/components/CityList";
-import { Nav } from "@/components/Nav";
 
 export const revalidate = 300; // refresh every 5 min
 
@@ -15,15 +14,14 @@ export default async function MemberMapPage() {
     : 0;
 
   return (
-    <div className="flex h-screen flex-col">
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[#1f2a3d] bg-[#111726] px-6 py-4">
+    <div className="flex h-[calc(100dvh-3rem)] flex-col md:h-screen">
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[#1f2a3d] bg-[#111726] px-4 py-4 md:px-6">
         <div>
           <div className="text-[12px] uppercase tracking-[0.05em] text-[#9bb0d4]">
             MEQ · Member Engagement and Quality
           </div>
           <h1 className="m-0 text-xl font-semibold">Global Member Map</h1>
         </div>
-        <Nav current="/map" />
         <div className="flex flex-wrap gap-6 text-[13px]">
           <span>
             <b className="mr-1 text-base text-[#8ab4ff]">
@@ -47,9 +45,9 @@ export default async function MemberMapPage() {
           </span>
         </div>
       </header>
-      <main className="grid flex-1 grid-cols-[1fr_320px] overflow-hidden">
+      <main className="grid flex-1 grid-cols-1 overflow-hidden md:grid-cols-[1fr_320px]">
         <MemberBubbleMap points={data.points} />
-        <aside className="overflow-y-auto border-l border-[#1f2a3d] bg-[#111726] p-5">
+        <aside className="hidden overflow-y-auto border-l md:block border-[#1f2a3d] bg-[#111726] p-5">
           <h2 className="m-0 mb-1 text-[13px] uppercase tracking-[0.05em] text-[#9bb0d4]">
             Top Cities
           </h2>

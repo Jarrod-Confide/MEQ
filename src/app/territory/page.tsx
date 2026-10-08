@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { Nav } from "@/components/Nav";
 import { getRegions, type RegionSummary, type TierName } from "@/lib/region-data";
 import { getCmByRegion } from "@/lib/staff";
 import { WINDOWS } from "@/lib/engagement-cache";
@@ -33,12 +32,11 @@ export default async function RegionsPage({
 
   return (
     <div className="min-h-screen">
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[#1f2a3d] bg-[#111726] px-6 py-4">
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[#1f2a3d] bg-[#111726] px-4 py-4 md:px-6">
         <div>
           <div className="text-[12px] uppercase tracking-[0.05em] text-[#9bb0d4]">MEQ · Community Manager View</div>
           <h1 className="m-0 text-xl font-semibold">Regions</h1>
         </div>
-        <Nav current="/territory" />
         <div className="flex items-center gap-3">
           <Link href="/territory/map" className="rounded-md border border-[#2d3d5c] px-3 py-1.5 text-[12px] text-[#8ab4ff] hover:bg-[#1a2238]">
             🗺 Regions map
@@ -49,7 +47,7 @@ export default async function RegionsPage({
         </div>
       </header>
 
-      <main className="px-6 py-5 space-y-6">
+      <main className="px-4 py-5 md:px-6 space-y-6">
         {/* Window picker + headline */}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2">

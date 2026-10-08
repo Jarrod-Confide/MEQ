@@ -7,7 +7,6 @@ import { RefreshButton } from "@/components/RefreshButton";
 import { TIER_COLOR } from "@/components/engagement-ui";
 import { fetchQualityByEventflowId } from "@/lib/quality-data";
 import { fetchFlagByEventflowId } from "@/lib/members";
-import { Nav } from "@/components/Nav";
 import { AlgorithmInfo } from "@/components/AlgorithmInfo";
 
 export const dynamic = "force-dynamic";
@@ -46,18 +45,17 @@ export default async function EngagementPage({
 
   return (
     <div className="min-h-screen">
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[#1f2a3d] bg-[#111726] px-6 py-4">
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[#1f2a3d] bg-[#111726] px-4 py-4 md:px-6">
         <div>
           <div className="text-[12px] uppercase tracking-[0.05em] text-[#9bb0d4]">
             MEQ · Member Engagement and Quality
           </div>
           <h1 className="m-0 text-xl font-semibold">Engagement Leaderboard</h1>
         </div>
-        <Nav current="/engagement" />
         <RefreshButton computedAt={data.computedAt} />
       </header>
 
-      <main className="px-6 py-5">
+      <main className="px-4 py-5 md:px-6">
         {/* Controls + dashboard */}
         <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-2">

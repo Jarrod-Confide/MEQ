@@ -41,11 +41,11 @@ export default async function StaffAdminPage() {
 
   return (
     <div className="min-h-screen">
-      <PageHeader eyebrow="MEQ · Admin" title="Staff & Referrals" current="/admin/staff">
+      <PageHeader eyebrow="MEQ · Admin" title="Staff & Referrals">
         <Link href="/admin" prefetch={false} className="text-[12px] text-[#8ab4ff] hover:underline">← Admin</Link>
       </PageHeader>
 
-      <main className="px-6 py-5 space-y-6">
+      <main className="px-4 py-5 md:px-6 space-y-6">
         {/* Referral resolution summary */}
         <section className="grid grid-cols-2 gap-3 sm:grid-cols-5">
           <Stat label="Member referrals" value={counts.member ?? 0} color="#22c55e" sub="earn Connector credit" />
@@ -142,7 +142,7 @@ export default async function StaffAdminPage() {
             <div className="grid grid-cols-1 gap-x-6 px-5 py-3 sm:grid-cols-2 lg:grid-cols-3">
               {ambiguous.map((u) => (
                 <div key={u.normalized_raw} className="flex items-center justify-between border-b border-[#141c2b] py-1.5 text-[12px]">
-                  <span className="text-[#cfdaee]">{u.raw_name}</span>
+                  <span className="min-w-0 text-[#cfdaee] [overflow-wrap:anywhere]">{u.raw_name}</span>
                   <span className="tabular-nums text-[#6a7da0]">×{u.n}</span>
                 </div>
               ))}
@@ -164,7 +164,7 @@ export default async function StaffAdminPage() {
             <div className="grid grid-cols-1 gap-x-6 px-5 py-3 sm:grid-cols-2 lg:grid-cols-3">
               {unmatched.map((u) => (
                 <div key={u.normalized_raw} className="flex items-center justify-between border-b border-[#141c2b] py-1.5 text-[12px]">
-                  <span className="text-[#cfdaee]">{u.raw_name}</span>
+                  <span className="min-w-0 text-[#cfdaee] [overflow-wrap:anywhere]">{u.raw_name}</span>
                   <span className="tabular-nums text-[#6a7da0]">×{u.n}</span>
                 </div>
               ))}

@@ -2,7 +2,6 @@ import { fetchQuality } from "@/lib/quality-data";
 import { QUALITY_TIER_ORDER, TIER_COLOR } from "@/lib/quality-tiers";
 import { QualityTable } from "@/components/QualityTable";
 import { getEngagement } from "@/lib/engagement-cache";
-import { Nav } from "@/components/Nav";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -38,20 +37,19 @@ export default async function QualityPage() {
 
   return (
     <div className="min-h-screen">
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[#1f2a3d] bg-[#111726] px-6 py-4">
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[#1f2a3d] bg-[#111726] px-4 py-4 md:px-6">
         <div>
           <div className="text-[12px] uppercase tracking-[0.05em] text-[#9bb0d4]">
             MEQ · Member Engagement and Quality
           </div>
           <h1 className="m-0 text-xl font-semibold">Member Quality</h1>
         </div>
-        <Nav current="/quality" />
         <div className="text-[11px] text-[#6a7da0]">
           {data.syncedAt ? `synced ${new Date(data.syncedAt).toLocaleString()}` : "not yet synced"}
         </div>
       </header>
 
-      <main className="px-6 py-5">
+      <main className="px-4 py-5 md:px-6">
         <div className="mb-3 flex flex-wrap gap-5">
           {stat("members", data.total, "#cfdaee")}
           {QUALITY_TIER_ORDER.map((t) => (

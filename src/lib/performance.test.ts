@@ -59,7 +59,7 @@ describe("resolveSettings", () => {
     });
     expect(s.eventTiers.map((t) => t.minMembers)).toEqual([0, 40]);
     expect(s.eventTypeGoals).toEqual({ dinner: { mode: "city" } });
-    expect(s.engagement).toEqual({ windowDays: 30, countReactions: true, goalPct: 40, stretchPct: 50 });
+    expect(s.engagement).toEqual({ windowDays: 30, countReactions: true, countVirtual: true, goalPct: 40, stretchPct: 50 });
   });
 });
 
@@ -143,6 +143,15 @@ describe("engagement participation", () => {
     expect(participated({ eventsAttended: 1 }, m)).toBe(true);
     expect(participated({ posts: 1 }, m)).toBe(true);
     expect(participated({ replies: 2 }, m)).toBe(true);
+  });
+  it("virtual events count unless Setup turns them off", () => {
+    expect(participated({ virtualAttended: 1 }, m)).toBe(true);
+    expect(participated({ virtualAttended: 1 }, { ...m, countVirtual: false })).toBe(false);
+  });
+  it("scoring settings: virtual weight defaults to half, bad values ignored", () => {
+    expect(DEFAULT_SETTINGS.scoring.virtualEventPct).toBe(50);
+    expect(resolveSettings({ scoring: { virtualEventPct: 75 } }).scoring.virtualEventPct).toBe(75);
+    expect(resolveSettings({ scoring: { virtualEventPct: -1 } }).scoring.virtualEventPct).toBe(50);
   });
   it("reactions count only when Setup says so", () => {
     expect(participated({ reactionsGiven: 4 }, m)).toBe(false);

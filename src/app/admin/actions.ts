@@ -68,10 +68,19 @@ export async function saveEngagementMeasure(formData: FormData) {
   const measure: EngagementMeasure = {
     windowDays: w === 30 || w === 180 ? w : 90,
     countReactions: formData.get("countReactions") === "on",
+    countVirtual: formData.get("countVirtual") === "on",
     goalPct: goalPct === null ? null : Math.min(100, goalPct),
     stretchPct: goalPct === null ? null : Math.min(100, Math.max(goalPct, stretchPct ?? goalPct)),
   };
   await saveSetting("engagement", measure, v.email);
+  bustGoals();
+}
+
+export async function saveScoring(formData: FormData) {
+  const v = await requireAdmin();
+  const pct = num(formData.get("virtualEventPct"));
+  if (pct === null) return;
+  await saveSetting("scoring", { virtualEventPct: Math.min(200, pct) }, v.email);
   bustGoals();
 }
 

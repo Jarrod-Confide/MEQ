@@ -11,9 +11,10 @@ export const ENGAGEMENT_TAG = "engagement";
  * code for up to `revalidate` seconds — a brief post-deploy outage.
  * BUMP THIS whenever the engagement data shape changes. (v3 = member
  * referrals feed Connector at weight 0.10, signals add `referrals`. v4 =
- * live events only in the score, signals add `virtualAttended`.)
+ * live events only, signals add `virtualAttended`. v5 = virtual events
+ * scored again, at Setup's weight.)
  */
-export const ENGAGEMENT_CACHE_VERSION = "v4-live-events-only-2026-10-08";
+export const ENGAGEMENT_CACHE_VERSION = "v5-virtual-weighted-2026-10-08";
 
 /**
  * Cached read of the MATERIALIZED leaderboard (engagement_cache table) —

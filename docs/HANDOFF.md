@@ -40,10 +40,12 @@ npm test                                 # unit tests (also run by every build)
 
 ## Pages
 
+Navigation is a sidebar (`src/components/Sidebar.tsx`, rendered by the root layout for signed-in users); on phones it collapses to a menu button and drawer.
+
 | Route | What |
 |---|---|
 | `/` | **Dashboard**: goals at a glance (event attendance, new members in expansion cities, member engagement), each as goal and stretch, this quarter and year; trends; this quarter's events; needs-attention count. Opens on the signed-in CM's region(s); `?region=all\|NE\|…` |
-| `/events` | Attendance for every event type, by period and region, with goal achievement |
+| `/events` | Every event type, upcoming and held, by period and region: registrations so far and attendance against goal |
 | `/outreach` | **My Priorities** (CM worklists, CSV export) |
 | `/engagement`, `/engagement/[key]` | **Members**: leaderboard and member profile |
 | `/quality` | Quality scores (linked from Members) |
@@ -80,7 +82,7 @@ MEQ tracks performance toward goals; it calculates no bonus (decided 2026-10-08)
 - **Every goal is a range:** goal and stretch.
 - **Event attendance:** active practitioners (not sponsors, vendors or Confide staff) who attended. Each event's goal comes from its type's rule in Setup: by city size (tiers on members in the event's city that day), fixed, or none. Virtual types (EventFlow `invite_mode = 'gcal_broadcast'`) are counted, never given a goal. EventFlow city spellings that differ from members' Closest Major City are in `EVENT_CITY_ALIASES`.
 - **New members in expansion cities:** members whose Closest Major City is an expansion city, counted by `joined_at` (becoming Active in HubSpot). Cities, regions and quarterly/annual goals at `/admin/cities`.
-- **Member engagement:** share of members who attended a live event or posted/replied on Slack or Circle in the Setup window. The trend comes from weekly snapshots' `signals` (90-day window).
+- **Member engagement:** share of members who attended an event (virtual counts unless Setup turns it off) or posted/replied on Slack or Circle in the Setup window. The trend comes from weekly snapshots' `signals` (90-day window).
 - **Setup variables** are stored in `app_settings` (defaults in `performance.ts`). **Admins:** `admins` table plus the permanent `BOOTSTRAP_ADMINS` in `src/lib/viewer.ts` (and `MEQ_ADMIN_EMAILS`).
 - **Who is signed in:** `staff.email` links a Google sign-in to a staff record and its regions.
 
@@ -90,7 +92,7 @@ MEQ tracks performance toward goals; it calculates no bonus (decided 2026-10-08)
 
 `Events 0.30 · Contribution 0.18 · Reciprocity 0.15 · Depth 0.12 · Reach 0.10 · Connector 0.10 · Presence 0.05`
 
-- **Events count live (in-person) events only** (since 2026-10-08). Virtual attendance is stored as `signals.virtualAttended` but adds nothing to the score.
+- **Virtual events count at a lower weight** than in-person: `WEIGHTS.attended` × Setup's `scoring.virtualEventPct` (default 50%), read from `app_settings` by the refresh cron. Counted separately as `signals.virtualAttended`; virtual no-shows cost nothing.
 - Connector includes **member referrals** (from HubSpot's "Referred/Invited By" field), each worth more than any single connector post. 90-day decay throughout; dimensions normalized to the 95th-percentile member; tiers by rank percentile.
 - **Staff referrals earn nothing.** The staff list must contain *everyone* at Confide who might refer members, not just CMs. Anyone missing from it gets member credit for their referrals.
 - Referral matching rules (nicknames, emails, middle names, duplicates) live in `src/lib/referral-matching.ts`.

@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { Nav } from "@/components/Nav";
 import { fetchMemberMap } from "@/lib/members";
 import { RegionChoropleth, type MemberDot } from "@/components/RegionChoropleth";
 import { getCmByRegion } from "@/lib/staff";
@@ -26,12 +25,11 @@ export default async function TerritoryMapPage() {
 
   return (
     <div className="flex h-screen flex-col">
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[#1f2a3d] bg-[#111726] px-6 py-4">
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[#1f2a3d] bg-[#111726] px-4 py-4 md:px-6">
         <div>
           <div className="text-[12px] uppercase tracking-[0.05em] text-[#9bb0d4]">MEQ · Community Manager View</div>
           <h1 className="m-0 text-xl font-semibold">Regions Map</h1>
         </div>
-        <Nav current="/territory" />
         <Link href="/territory" className="text-[12px] text-[#8ab4ff] hover:underline">← Back to regions dashboard</Link>
       </header>
 

@@ -74,13 +74,13 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
   return (
     <div className="min-h-screen">
-      <PageHeader title={`Dashboard · ${scopeLabel(scope)}`} current="/">
+      <PageHeader title={`Dashboard · ${scopeLabel(scope)}`}>
         <Link href="/dashboard" prefetch={false} className="text-[12px] text-[#6a7da0] hover:text-[#8ab4ff]">
           Membership overview →
         </Link>
       </PageHeader>
 
-      <main className="space-y-6 px-6 py-5">
+      <main className="space-y-6 px-4 py-5 md:px-6">
         {/* Scope switch */}
         <div className="flex flex-wrap items-center gap-1.5 text-[12px]">
           {mine.length > 0 && <ScopeChip href="/?region=mine" active={scope !== "ALL" && sameRegions(scope, mine)} label="My regions" />}
@@ -128,7 +128,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
               <Label>Members who participated, last {share.windowDays} days</Label>
               <GoalBar actual={share.pct ?? 0} goal={engGoal} stretch={engStretch} unit="%" />
               <p className="mb-0 mt-3 text-[11px] text-[#6a7da0]">
-                {share.participating.toLocaleString()} of {share.members.toLocaleString()} members attended a live event or
+                {share.participating.toLocaleString()} of {share.members.toLocaleString()} members attended an event (in person or virtual) or
                 posted on Slack or Circle. Becomes a goal in Q1 2027{engGoal == null ? "; the goal isn't set yet" : ""}.
               </p>
             </div>
@@ -249,7 +249,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                   ]}
                 />
                 <p className="mb-0 mt-2 text-[11px] text-[#6a7da0]">
-                  Live events, Slack and Circle posts and replies. Virtual events don&apos;t count toward engagement.
+                  Events (in person and virtual), Slack and Circle posts and replies.
                 </p>
               </>
             ) : (

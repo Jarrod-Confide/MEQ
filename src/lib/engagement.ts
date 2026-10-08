@@ -1,6 +1,7 @@
 import { eventflowSql, slackleSql } from "./db";
 import { meqSql } from "./db/meq";
 import { safeIso } from "./safe-date";
+import { resolveSettings } from "./performance";
 
 // ─── Tunable config ─────────────────────────────────────────────────────────
 // Weights and decay follow the CISO Community Engagement Ranking framework.
@@ -17,7 +18,7 @@ export const WEIGHTS = {
   reactionReceived: 1,
   replyReceived: 3, // another member replied to your post
   activeDay: 2, // each distinct day with any activity
-  attended: 50, // in-person (live) event attendance. Virtual adds nothing (MQ-7).
+  attended: 50, // in-person (live) event attendance. Virtual = this × Setup's virtualEventPct.
   noShow: -2,
   spoke: 75, // DEFERRED: no speaker→contact link in EventFlow yet (always 0 today)
   // Referring a new member — the strongest connector action (connector
@@ -79,8 +80,8 @@ export type SignalCounts = {
   reactionsGiven: number;
   reactionsReceived: number;
   repliesReceived: number;
-  eventsAttended: number; // live (in-person) events only, since 2026-10
-  /** Virtual events attended: shown, but adds nothing to the score (MQ-7). */
+  eventsAttended: number; // live (in-person) events
+  /** Virtual events attended. Scored at a lower weight (Setup), counted separately. */
   virtualAttended?: number;
   noShows: number;
   activeDays: number;
@@ -179,7 +180,7 @@ export async function computeEngagement(
     d != null && !isNaN(new Date(d).getTime());
 
   // Pull everything in parallel. Volumes are small (~5K Slackle rows, ~3K EF).
-  const [contacts, messages, reactionsGiven, reactionsRecv, repliesRecv, attendance, msgScores, referrals] =
+  const [contacts, messages, reactionsGiven, reactionsRecv, repliesRecv, attendance, msgScores, referrals, settingsRows] =
     await Promise.all([
       eventflowSql<
         {
@@ -265,7 +266,12 @@ export async function computeEngagement(
           AND r.referred_joined_at IS NOT NULL
           AND r.referred_joined_at >= ${since.toISOString()}
           AND r.referred_joined_at <= ${until.toISOString()}`,
+
+      // Setup's scoring knobs (virtual event weight). Missing → defaults.
+      meqSql<{ value: unknown }[]>`SELECT value FROM app_settings WHERE key = 'scoring'`,
     ]);
+  const scoring = resolveSettings({ scoring: settingsRows[0]?.value }).scoring;
+  const virtualWeight = WEIGHTS.attended * (scoring.virtualEventPct / 100);
 
   // message_id → content score (in-memory join; different DB).
   const scoreById = new Map<string, { weight: number; substance: number; connector: boolean }>();
@@ -448,18 +454,13 @@ export async function computeEngagement(
     acc.signals.repliesReceived += 1;
   }
 
-  // Event attendance → Events. Live events only (Jarrod, 2026-10-06): a
-  // virtual attendance is counted for display but earns no score, and a
-  // virtual no-show costs nothing. Virtual counts are attached at the end,
-  // to members scored on something else (virtual alone doesn't score them).
-  const virtualByContact = new Map<string, number>();
+  // Event attendance → Events. Virtual events count too (Jarrod, 2026-10-08)
+  // at Setup's weight (default half an in-person event); a virtual no-show
+  // costs nothing.
   for (const a of attendance) {
     const contact = contactById.get(a.contact_id);
     if (!contact || !validDate(a.starts_at)) continue;
-    if (a.is_virtual) {
-      if (a.status === "attended") virtualByContact.set(contact.id, (virtualByContact.get(contact.id) ?? 0) + 1);
-      continue;
-    }
+    if (a.is_virtual && a.status !== "attended") continue;
     const key = `c:${contact.id}`;
     let acc = accs.get(key);
     if (!acc) {
@@ -467,7 +468,11 @@ export async function computeEngagement(
       accs.set(key, acc);
     }
     const dec = decay(a.starts_at);
-    if (a.status === "attended") {
+    if (a.is_virtual) {
+      acc.raw.events += virtualWeight * dec;
+      acc.signals.virtualAttended = (acc.signals.virtualAttended ?? 0) + 1;
+      touch(acc, a.starts_at);
+    } else if (a.status === "attended") {
       acc.raw.events += WEIGHTS.attended * dec;
       acc.signals.eventsAttended += 1;
       touch(acc, a.starts_at);
@@ -496,7 +501,6 @@ export async function computeEngagement(
 
   // Finalize active-days presence + Depth (evidence-weighted avg substance)
   for (const acc of accs.values()) {
-    if (acc.key.startsWith("c:")) acc.signals.virtualAttended = virtualByContact.get(acc.key.slice(2)) ?? 0;
     let presenceDays = 0;
     for (const dec of acc.activeDays.values()) presenceDays += WEIGHTS.activeDay * dec;
     acc.raw.presence += presenceDays;
@@ -512,7 +516,7 @@ export async function computeEngagement(
   const scored = [...accs.values()].filter((a) => {
     const s = a.signals;
     return (
-      s.posts + s.replies + s.reactionsGiven + s.reactionsReceived + s.repliesReceived + s.eventsAttended + s.noShows + s.referrals > 0
+      s.posts + s.replies + s.reactionsGiven + s.reactionsReceived + s.repliesReceived + s.eventsAttended + (s.virtualAttended ?? 0) + s.noShows + s.referrals > 0
     );
   });
 

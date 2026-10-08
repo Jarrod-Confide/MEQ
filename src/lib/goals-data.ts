@@ -303,7 +303,7 @@ export type SharePoint = { week: string; pct: number };
  */
 export async function getEngagementShareTrend(regions: Territory[] | "ALL"): Promise<SharePoint[]> {
   const settings = await getSettings();
-  const countReactions = settings.engagement.countReactions;
+  const { countReactions, countVirtual } = settings.engagement;
   const [rows, roster] = await Promise.all([
     unstable_cache(
       async () =>
@@ -312,6 +312,7 @@ export async function getEngagementShareTrend(regions: Territory[] | "ALL"): Pro
             SELECT week_start, territory,
               COUNT(*) FILTER (WHERE
                 COALESCE((signals->>'eventsAttended')::int, 0) > 0
+                OR (${countVirtual} AND COALESCE((signals->>'virtualAttended')::int, 0) > 0)
                 OR COALESCE((signals->>'posts')::int, 0) + COALESCE((signals->>'replies')::int, 0) > 0
                 OR (${countReactions} AND COALESCE((signals->>'reactionsGiven')::int, 0) > 0)
               )::int AS participated,
@@ -321,7 +322,7 @@ export async function getEngagementShareTrend(regions: Territory[] | "ALL"): Pro
               AND week_start >= NOW() - INTERVAL '400 days'
             GROUP BY 1, 2 ORDER BY 1`
         ).map((r) => ({ ...r, week_start: safeIso(r.week_start) ?? "" })),
-      ["goals-share-trend-v1", String(countReactions)],
+      ["goals-share-trend-v2", String(countReactions), String(countVirtual)],
       { revalidate: TEN_MIN, tags: [GOALS_TAG] }
     )(),
     getRoster(),

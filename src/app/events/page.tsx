@@ -14,7 +14,7 @@ export const maxDuration = 60;
 const card = "rounded-lg border border-[#1f2a3d] bg-[#111726] p-5";
 const h2 = "m-0 text-[13px] uppercase tracking-wide text-[#9bb0d4]";
 
-type PeriodKey = "q" | "lq" | "y" | "all";
+type PeriodKey = "up" | "q" | "lq" | "y" | "all";
 
 function periodFor(key: PeriodKey, now: Date): Period | null {
   if (key === "q") return quarterOf(now);
@@ -37,6 +37,9 @@ type TypeSummary = {
   goalActual: number;
   metGoal: number;
   metStretch: number;
+  upcoming: number; // events still to come
+  registered: number; // active practitioners registered for them
+  needPeople: number; // upcoming events with a goal, registrations below it
 };
 
 function summarize(events: EventRow[]): TypeSummary[] {
@@ -45,8 +48,14 @@ function summarize(events: EventRow[]): TypeSummary[] {
     const slug = e.typeSlug ?? "unknown";
     let s = by.get(slug);
     if (!s) {
-      s = { name: e.typeName ?? "Unknown type", slug, isVirtual: e.isVirtual, events: 0, attended: 0, practitioners: 0, members: 0, withGoal: 0, goal: 0, stretch: 0, goalActual: 0, metGoal: 0, metStretch: 0 };
+      s = { name: e.typeName ?? "Unknown type", slug, isVirtual: e.isVirtual, events: 0, attended: 0, practitioners: 0, members: 0, withGoal: 0, goal: 0, stretch: 0, goalActual: 0, metGoal: 0, metStretch: 0, upcoming: 0, registered: 0, needPeople: 0 };
       by.set(slug, s);
+    }
+    if (!e.past) {
+      s.upcoming++;
+      s.registered += e.registered;
+      if (e.goal && e.registered < e.goal.goal) s.needPeople++;
+      continue;
     }
     s.events++;
     s.attended += e.attended;
@@ -61,7 +70,9 @@ function summarize(events: EventRow[]): TypeSummary[] {
       if (e.practitioners >= e.goal.stretch) s.metStretch++;
     }
   }
-  return [...by.values()].sort((a, b) => Number(a.isVirtual) - Number(b.isVirtual) || b.practitioners - a.practitioners);
+  return [...by.values()].sort(
+    (a, b) => Number(a.isVirtual) - Number(b.isVirtual) || b.practitioners + b.registered - (a.practitioners + a.registered)
+  );
 }
 
 export default async function EventsPage({
@@ -71,16 +82,21 @@ export default async function EventsPage({
 }) {
   const { region, period, type } = await searchParams;
   const now = new Date();
-  const periodKey: PeriodKey = period === "lq" || period === "y" || period === "all" ? period : "q";
+  const periodKey: PeriodKey = period === "up" || period === "lq" || period === "y" || period === "all" ? period : "q";
   const p = periodFor(periodKey, now);
 
   const [viewer, { events: all }] = await Promise.all([getViewer(), getEvents()]);
   const scope: Scope = resolveScope(region ?? "all", viewer);
   // Virtual events belong to every region, so they appear in the all-regions view only.
   const inScope = eventsInScope(all, scope);
-  const held = inScope.filter((e) => e.past && (!p || inPeriod(e.startsAt, p)));
-  const summary = summarize(held);
-  const listed = held.filter((e) => !type || e.typeSlug === type).reverse();
+  // Upcoming events matter as much as held ones: they're where a CM can still act.
+  const inWindow = inScope.filter((e) => (periodKey === "up" ? !e.past : !p || inPeriod(e.startsAt, p)));
+  const held = inWindow.filter((e) => e.past);
+  const upcoming = inWindow.filter((e) => !e.past);
+  const summary = summarize(inWindow);
+  const ofType = (e: EventRow) => !type || e.typeSlug === type;
+  const listedUpcoming = upcoming.filter(ofType);
+  const listedHeld = held.filter(ofType).reverse();
 
   const inPerson = held.filter((e) => !e.isVirtual);
   const virtual = held.filter((e) => e.isVirtual);
@@ -92,16 +108,18 @@ export default async function EventsPage({
     for (const [k, v] of Object.entries(merged)) if (v) params.set(k, v);
     return `/events?${params.toString()}`;
   };
-  const periodLabel = p ? p.label : "All time";
+  const periodLabel = periodKey === "up" ? "Upcoming" : p ? p.label : "All time";
+  const needPeople = upcoming.filter((e) => e.goal && e.registered < e.goal.goal).length;
 
   return (
     <div className="min-h-screen">
-      <PageHeader title={`Events · ${scopeLabel(scope)}`} current="/events" />
+      <PageHeader title={`Events · ${scopeLabel(scope)}`} />
 
-      <main className="space-y-6 px-6 py-5">
+      <main className="space-y-6 px-4 py-5 md:px-6">
         <div className="flex flex-wrap items-center gap-1.5 text-[12px]">
           {(
             [
+              ["up", "Upcoming"],
               ["q", "This quarter"],
               ["lq", "Last quarter"],
               ["y", "This year"],
@@ -117,11 +135,13 @@ export default async function EventsPage({
           ))}
         </div>
 
-        <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <Stat label={`In-person events · ${periodLabel}`} value={inPerson.length} />
+        <section className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
+          <Stat label="Upcoming events" value={upcoming.length} sub={`${upcoming.filter((e) => !e.isVirtual).length} in person, ${upcoming.filter((e) => e.isVirtual).length} virtual`} />
+          <Stat label="Registered so far" value={total(upcoming, (e) => e.registered)} sub={needPeople ? `${needPeople} ${needPeople === 1 ? "event needs" : "events need"} people` : "active practitioners"} />
+          <Stat label="In-person events held" value={inPerson.length} />
           <Stat label="Active practitioners attended" value={total(inPerson, (e) => e.practitioners)} sub={`${total(inPerson, (e) => e.practitionerMembers)} members, ${total(inPerson, (e) => e.practitioners - e.practitionerMembers)} non-members`} />
-          <Stat label="Virtual events" value={virtual.length} sub={scope === "ALL" ? "counted, no goal" : "shown in All regions"} />
-          <Stat label="Virtual attendees" value={total(virtual, (e) => e.attended)} sub="not part of the engagement score" />
+          <Stat label="Virtual events held" value={virtual.length} sub={scope === "ALL" ? "counted, no goal" : "shown in All regions"} />
+          <Stat label="Virtual attendees" value={total(virtual, (e) => e.attended)} sub="scored at a lower weight than in person" />
         </section>
 
         <section className={card}>
@@ -132,19 +152,20 @@ export default async function EventsPage({
             )}
           </div>
           {summary.length === 0 ? (
-            <p className="m-0 text-[12px] text-[#6a7da0]">No events held in this period and view.</p>
+            <p className="m-0 text-[12px] text-[#6a7da0]">No events in this period and view.</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-[13px]">
                 <thead>
                   <tr className="text-left text-[11px] uppercase tracking-wide text-[#6a7da0]">
                     <th className="py-2 font-medium">Type</th>
-                    <th className="py-2 font-medium">Events</th>
+                    <th className="py-2 font-medium">Held</th>
                     <th className="py-2 font-medium">Practitioners</th>
                     <th className="py-2 font-medium">Members</th>
                     <th className="py-2 font-medium">Avg per event</th>
                     <th className="py-2 font-medium">Vs goal</th>
                     <th className="py-2 font-medium">Met goal · stretch</th>
+                    <th className="py-2 font-medium">Upcoming · registered</th>
                     <th className="py-2 font-medium"></th>
                   </tr>
                 </thead>
@@ -155,14 +176,18 @@ export default async function EventsPage({
                         {s.name}
                         {s.isVirtual && <span className="ml-2 text-[11px] text-[#6a7da0]">virtual</span>}
                       </td>
-                      <td className="py-2 tabular-nums">{s.events}</td>
+                      <td className="py-2 tabular-nums">{s.events || ""}</td>
                       <td className="py-2 tabular-nums text-white">{s.isVirtual ? s.attended : s.practitioners}</td>
                       <td className="py-2 tabular-nums text-[#9bb0d4]">{s.members}</td>
-                      <td className="py-2 tabular-nums text-[#9bb0d4]">{((s.isVirtual ? s.attended : s.practitioners) / s.events).toFixed(1)}</td>
+                      <td className="py-2 tabular-nums text-[#9bb0d4]">{s.events ? ((s.isVirtual ? s.attended : s.practitioners) / s.events).toFixed(1) : ""}</td>
                       <td className="py-2 tabular-nums text-[#9bb0d4]">
-                        {s.withGoal ? `${s.goalActual} of ${s.goal} (${pctOf(s.goalActual, s.goal)}%)` : <span className="text-[#6a7da0]">no goal</span>}
+                        {s.withGoal ? `${s.goalActual} of ${s.goal} (${pctOf(s.goalActual, s.goal)}%)` : s.events ? <span className="text-[#6a7da0]">no goal</span> : ""}
                       </td>
                       <td className="py-2 tabular-nums text-[#9bb0d4]">{s.withGoal ? `${s.metGoal} · ${s.metStretch} of ${s.withGoal}` : ""}</td>
+                      <td className="py-2 tabular-nums text-[#9bb0d4]">
+                        {s.upcoming ? `${s.upcoming} · ${s.registered}` : ""}
+                        {s.needPeople > 0 && <span className="ml-1.5 text-[11px] text-[#fb923c]">{s.needPeople} need people</span>}
+                      </td>
                       <td className="py-2 text-right">
                         <Link href={qs({ type: type === s.slug ? undefined : s.slug })} prefetch={false} className="text-[12px] text-[#8ab4ff] hover:underline">
                           {type === s.slug ? "Show all" : "List"}
@@ -180,23 +205,41 @@ export default async function EventsPage({
           )}
         </section>
 
-        <section className={card}>
-          <div className="mb-3 flex items-baseline justify-between">
-            <h2 className={h2}>
-              Events held · {periodLabel}
-              {type && ` · ${summary.find((s) => s.slug === type)?.name ?? type}`}
-            </h2>
-            {type && <Link href={qs({ type: undefined })} prefetch={false} className="text-[12px] text-[#8ab4ff] hover:underline">All types</Link>}
-          </div>
-          <EventTable events={listed} showYear={periodKey === "all"} />
-          {listed.some((e) => e.goal) && (
-            <div className="mt-3 flex flex-wrap gap-3 text-[11px] text-[#6a7da0]">
-              <StatusPill status="stretch" /> attended at least the stretch goal
-              <StatusPill status="met" /> at least the goal
-              <StatusPill status="below" /> under the goal
+        {periodKey !== "lq" && (
+          <section className={card}>
+            <div className="mb-3 flex items-baseline justify-between">
+              <h2 className={h2}>
+                Upcoming · {periodLabel}
+                {type && ` · ${summary.find((x) => x.slug === type)?.name ?? type}`}
+              </h2>
+              {type && <Link href={qs({ type: undefined })} prefetch={false} className="text-[12px] text-[#8ab4ff] hover:underline">All types</Link>}
             </div>
-          )}
-        </section>
+            <EventTable events={listedUpcoming} showYear={periodKey === "all" || periodKey === "up"} />
+            <p className="mb-0 mt-3 text-[11px] text-[#6a7da0]">
+              Active practitioners registered so far against each event&apos;s goal: &ldquo;Needs people&rdquo; is where to push.
+            </p>
+          </section>
+        )}
+
+        {periodKey !== "up" && (
+          <section className={card}>
+            <div className="mb-3 flex items-baseline justify-between">
+              <h2 className={h2}>
+                Held · {periodLabel}
+                {type && ` · ${summary.find((x) => x.slug === type)?.name ?? type}`}
+              </h2>
+              {type && <Link href={qs({ type: undefined })} prefetch={false} className="text-[12px] text-[#8ab4ff] hover:underline">All types</Link>}
+            </div>
+            <EventTable events={listedHeld} showYear={periodKey === "all"} />
+            {listedHeld.some((e) => e.goal) && (
+              <div className="mt-3 flex flex-wrap items-center gap-3 text-[11px] text-[#6a7da0]">
+                <StatusPill status="stretch" /> attended at least the stretch goal
+                <StatusPill status="met" /> at least the goal
+                <StatusPill status="below" /> under the goal
+              </div>
+            )}
+          </section>
+        )}
       </main>
     </div>
   );

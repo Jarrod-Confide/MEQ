@@ -2,7 +2,6 @@ import { fetchDashboard } from "@/lib/dashboard-data";
 import { QUALITY_TIER_ORDER, TIER_COLOR as QUALITY_TIER_COLOR } from "@/lib/quality-tiers";
 import { TIER_COLOR as ENGAGEMENT_TIER_COLOR } from "@/components/engagement-ui";
 import { TIERS } from "@/lib/engagement";
-import { Nav } from "@/components/Nav";
 import { LineChart, ChartLegend } from "@/components/charts";
 
 export const dynamic = "force-dynamic";
@@ -27,20 +26,19 @@ export default async function DashboardPage() {
 
   return (
     <div className="min-h-screen">
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[#1f2a3d] bg-[#111726] px-6 py-4">
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[#1f2a3d] bg-[#111726] px-4 py-4 md:px-6">
         <div>
           <div className="text-[12px] uppercase tracking-[0.05em] text-[#9bb0d4]">
             MEQ · Member Engagement and Quality
           </div>
           <h1 className="m-0 text-xl font-semibold">Membership Dashboard</h1>
         </div>
-        <Nav current="/dashboard" />
         <div className="text-[11px] text-[#6a7da0]">
           {d.syncedAt ? `synced ${new Date(d.syncedAt).toLocaleString()}` : "—"}
         </div>
       </header>
 
-      <main className="px-6 py-5 space-y-6">
+      <main className="px-4 py-5 md:px-6 space-y-6">
         {/* Headline numbers */}
         <section className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-5">
           <BigStat label="Members" value={d.totalMembers} color="#cfdaee" />
@@ -63,11 +61,11 @@ export default async function DashboardPage() {
             </h2>
             <span className="text-[11px] text-[#6a7da0]">last 12 months</span>
           </div>
-          <div className="flex h-32 items-end gap-2">
+          <div className="flex h-32 items-end gap-1 sm:gap-2">
             {d.monthlyJoins.map((m) => {
               const h = Math.round((m.count / maxBar) * 100);
               return (
-                <div key={m.month} className="flex flex-1 flex-col items-center">
+                <div key={m.month} className="flex min-w-0 flex-1 flex-col items-center">
                   <div
                     className="flex w-full items-end justify-center rounded-t bg-[#8ab4ff] transition-all"
                     style={{ height: `${Math.max(2, h)}%`, opacity: 0.5 + (h / 100) * 0.5 }}
@@ -77,7 +75,7 @@ export default async function DashboardPage() {
                     {m.count > 0 ? m.count : ""}
                   </div>
                   <div className="text-[10px] text-[#6a7da0]">
-                    {m.month.slice(5)}/{m.month.slice(2, 4)}
+                    {m.month.slice(5)}<span className="hidden sm:inline">/{m.month.slice(2, 4)}</span>
                   </div>
                 </div>
               );

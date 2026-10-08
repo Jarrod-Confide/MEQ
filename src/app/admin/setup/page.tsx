@@ -3,7 +3,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { SubmitButton } from "@/components/SubmitButton";
 import { getSettings } from "@/lib/settings";
 import { getEventTypes } from "@/lib/goals-data";
-import { saveEventTiers, saveEventTypeGoals, saveEngagementMeasure } from "../actions";
+import { saveEventTiers, saveEventTypeGoals, saveEngagementMeasure, saveScoring } from "../actions";
 
 export const dynamic = "force-dynamic";
 
@@ -19,11 +19,11 @@ export default async function SetupPage() {
 
   return (
     <div className="min-h-screen">
-      <PageHeader eyebrow="MEQ · Admin" title="Setup" current="/admin/setup">
+      <PageHeader eyebrow="MEQ · Admin" title="Setup">
         <Link href="/admin" prefetch={false} className="text-[12px] text-[#8ab4ff] hover:underline">← Admin</Link>
       </PageHeader>
 
-      <main className="max-w-4xl space-y-6 px-6 py-5">
+      <main className="max-w-4xl space-y-6 px-4 py-5 md:px-6">
         <p className="m-0 text-[13px] text-[#9bb0d4]">
           The variables behind every goal in MEQ. Each goal has a <b className="text-white">goal</b> and a{" "}
           <b className="text-white">stretch goal</b>. Changes show on the Dashboard and Events straight away.
@@ -38,13 +38,13 @@ export default async function SetupPage() {
             vendors and Confide staff are excluded). Leave the last row blank, or fill it in to add a tier.
           </p>
           <form action={saveEventTiers} className="space-y-2">
-            <div className="grid grid-cols-[150px_100px_100px] gap-3 text-[11px] uppercase tracking-wide text-[#6a7da0]">
+            <div className="grid max-w-sm grid-cols-3 gap-3 text-[11px] uppercase tracking-wide text-[#6a7da0]">
               <span>Members in city, from</span>
               <span>Goal</span>
               <span>Stretch</span>
             </div>
             {tiers.map((t, i) => (
-              <div key={i} className="grid grid-cols-[150px_100px_100px] items-center gap-3">
+              <div key={i} className="grid max-w-sm grid-cols-3 items-center gap-3">
                 <input name={`min_${i}`} type="number" min={0} defaultValue={Number.isNaN(t.minMembers) ? "" : t.minMembers} placeholder="e.g. 200" className={input} />
                 <input name={`goal_${i}`} type="number" min={0} defaultValue={Number.isNaN(t.goal) ? "" : t.goal} className={input} />
                 <input name={`stretch_${i}`} type="number" min={0} defaultValue={Number.isNaN(t.stretch) ? "" : t.stretch} className={input} />
@@ -64,7 +64,8 @@ export default async function SetupPage() {
             Virtual events are counted, never given a goal.
           </p>
           <form action={saveEventTypeGoals}>
-            <table className="w-full text-[13px]">
+            <div className="overflow-x-auto">
+            <table className="w-full min-w-[520px] text-[13px]">
               <thead>
                 <tr className="text-left text-[11px] uppercase tracking-wide text-[#6a7da0]">
                   <th className="py-2 font-medium">Event type</th>
@@ -119,6 +120,7 @@ export default async function SetupPage() {
                 })}
               </tbody>
             </table>
+            </div>
             <div className="mt-3">
               <SubmitButton pendingText="Saving…" className={saveBtn}>Save event types</SubmitButton>
             </div>
@@ -129,7 +131,7 @@ export default async function SetupPage() {
         <section className="rounded-lg border border-[#1f2a3d] bg-[#111726] p-5">
           <h2 className="m-0 text-[13px] uppercase tracking-wide text-[#9bb0d4]">Member engagement measure</h2>
           <p className="mb-4 mt-1 text-[12px] text-[#6a7da0]">
-            The share of a region&apos;s members who participated recently: attended a live event, or posted or replied on
+            The share of a region&apos;s members who participated recently: attended an event, or posted or replied on
             Slack or Circle. Circle visits join once Circle logins are captured. Becomes a goal from Q1 2027; leave the
             goal blank until it&apos;s agreed.
           </p>
@@ -150,6 +152,10 @@ export default async function SetupPage() {
               <input type="checkbox" name="countReactions" defaultChecked={m.countReactions} className="accent-[#8ab4ff]" />
               Emoji reactions count as participating
             </label>
+            <label className="flex items-center gap-2 pb-1 text-[13px] text-[#cfdaee]">
+              <input type="checkbox" name="countVirtual" defaultChecked={m.countVirtual} className="accent-[#8ab4ff]" />
+              Virtual events count as participating
+            </label>
             <label className="text-[11px] uppercase tracking-wide text-[#9bb0d4]">
               Goal (% of members)
               <input name="goalPct" type="number" min={0} max={100} step="0.5" defaultValue={m.goalPct ?? ""} placeholder="not set" className={`mt-1 block ${input}`} />
@@ -163,6 +169,21 @@ export default async function SetupPage() {
           <p className="mb-0 mt-3 text-[11px] text-[#6a7da0]">
             The trend line always uses a 90-day window (it&apos;s built from the weekly snapshots).
           </p>
+        </section>
+        {/* Engagement score */}
+        <section className="rounded-lg border border-[#1f2a3d] bg-[#111726] p-5">
+          <h2 className="m-0 text-[13px] uppercase tracking-wide text-[#9bb0d4]">Engagement score</h2>
+          <p className="mb-4 mt-1 text-[12px] text-[#6a7da0]">
+            How much a virtual event counts in a member&apos;s engagement score, compared with attending in person (100%).
+            Applies at the next refresh, within 10 minutes.
+          </p>
+          <form action={saveScoring} className="flex flex-wrap items-end gap-5">
+            <label className="text-[11px] uppercase tracking-wide text-[#9bb0d4]">
+              Virtual event weight (% of in person)
+              <input name="virtualEventPct" type="number" min={0} max={200} step="5" defaultValue={settings.scoring.virtualEventPct} className={`mt-1 block ${input}`} />
+            </label>
+            <SubmitButton pendingText="Saving…" className={saveBtn}>Save weight</SubmitButton>
+          </form>
         </section>
       </main>
     </div>

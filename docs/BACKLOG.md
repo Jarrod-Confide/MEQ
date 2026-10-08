@@ -11,6 +11,12 @@ Status: **Built** · **Ready** (agreed, can be built) · **Decided** (approach c
 
 ## Decisions
 
+### 2026-10-08 (latest)
+
+- **Virtual events count in the engagement score** (reverses MQ-7's live-only rule). Weighted below in-person: default 50% of an in-person event, adjustable in Setup. They also count as participating for the engagement goal (Setup toggle).
+- **Events tab shows upcoming events** as well as held ones, with registrations so far against goal.
+- **Navigation is a sidebar**, with a menu button and drawer on phones, so MEQ works on mobile.
+
 ### 2026-10-08 (later): build it, with ranges
 
 - **Every goal is a range: a goal and a stretch goal.**
@@ -132,7 +138,8 @@ The **v1** plan gave each **Anti-Summit** (the larger flagship events) its own t
 - The signed-in CM's region: new members not yet participating, declining members, dormant members, high-quality members with low engagement.
 - CMs log activity on a member: **contacted, snoozed (until a date), note**, plus other actions such as *called*, *met at an event*, *introduced to someone*, *invited to an event*. Snoozed members leave the list until the date; the history shows on the member's profile so CMs see each other's follow-up.
 
-**MQ-7 · Live events in the score; virtual counted separately** · S · P1 · Built
+**MQ-7 · Virtual events weighted below in-person** · S · P1 · Built
+- Superseded 2026-10-08: virtual events count again, at Setup's weight (default 50%). The original live-only text is kept below for history.
 - The engagement score's Events dimension counts **in-person events only**. Virtual attendance is measured and shown as its own count (profile, Members, regions), but adds nothing to the overall score. Bump the cache version; annotate trend charts.
 
 **MQ-8 · Engagement by channel: Slack, Circle, virtual, in-person** · M · P2 · Ready

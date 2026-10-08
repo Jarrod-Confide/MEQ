@@ -32,11 +32,11 @@ export default async function ExpansionCitiesPage() {
 
   return (
     <div className="min-h-screen">
-      <PageHeader eyebrow="MEQ · Admin" title="Expansion cities" current="/admin/cities">
+      <PageHeader eyebrow="MEQ · Admin" title="Expansion cities">
         <Link href="/admin" prefetch={false} className="text-[12px] text-[#8ab4ff] hover:underline">← Admin</Link>
       </PageHeader>
 
-      <main className="space-y-6 px-6 py-5">
+      <main className="space-y-6 px-4 py-5 md:px-6">
         <p className="m-0 max-w-3xl text-[13px] text-[#9bb0d4]">
           Cities where we want enough members to host events. A new member counts toward a city when their Closest
           Major City matches and they become an Active member in HubSpot (the working definition of

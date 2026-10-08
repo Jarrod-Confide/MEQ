@@ -17,10 +17,10 @@ export default async function AdminsPage() {
 
   return (
     <div className="min-h-screen">
-      <PageHeader eyebrow="MEQ · Admin" title="Admins" current="/admin/admins">
+      <PageHeader eyebrow="MEQ · Admin" title="Admins">
         <Link href="/admin" prefetch={false} className="text-[12px] text-[#8ab4ff] hover:underline">← Admin</Link>
       </PageHeader>
-      <main className="max-w-2xl space-y-6 px-6 py-5">
+      <main className="max-w-2xl space-y-6 px-4 py-5 md:px-6">
         <p className="m-0 text-[13px] text-[#9bb0d4]">
           Admins can open Admin: Setup, expansion cities, staff and this list. Everyone else at Confide can use the
           rest of MEQ. Use the person&apos;s @confide.group sign-in address.

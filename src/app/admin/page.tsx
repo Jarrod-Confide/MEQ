@@ -14,8 +14,8 @@ const SECTIONS = [
 export default function AdminHome() {
   return (
     <div className="min-h-screen">
-      <PageHeader eyebrow="MEQ · Admin" title="Admin" current="/admin" />
-      <main className="grid grid-cols-1 gap-3 px-6 py-5 sm:grid-cols-2 lg:grid-cols-3">
+      <PageHeader eyebrow="MEQ · Admin" title="Admin" />
+      <main className="grid grid-cols-1 gap-3 px-4 py-5 md:px-6 sm:grid-cols-2 lg:grid-cols-3">
         {SECTIONS.map((s) => (
           <Link
             key={s.href}

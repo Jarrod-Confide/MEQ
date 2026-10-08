@@ -13,7 +13,7 @@ export function dateShort(iso: string): string {
  * registered so far, so a CM can see which events need people.
  */
 export function EventTable({ events, showYear = false }: { events: EventRow[]; showYear?: boolean }) {
-  if (!events.length) return <p className="m-0 text-[12px] text-[#6a7da0]">No in-person events in this view.</p>;
+  if (!events.length) return <p className="m-0 text-[12px] text-[#6a7da0]">No events in this view.</p>;
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-[13px]">

@@ -29,15 +29,24 @@ export type EngagementMeasure = {
   windowDays: 30 | 90 | 180;
   /** Do emoji reactions count as participating? */
   countReactions: boolean;
+  /** Does attending a virtual event count as participating? */
+  countVirtual: boolean;
   /** Share of members participating, in percent. null = not set yet. */
   goalPct: number | null;
   stretchPct: number | null;
+};
+
+/** Engagement-score knobs read by the refresh cron (computeEngagement). */
+export type ScoringSettings = {
+  /** A virtual event's weight as a % of an in-person event (Jarrod 2026-10-08: virtual counts, in-person more). */
+  virtualEventPct: number;
 };
 
 export type PerformanceSettings = {
   eventTiers: EventTier[];
   eventTypeGoals: Record<string, EventTypeGoal>; // keyed by EventFlow event_types.slug
   engagement: EngagementMeasure;
+  scoring: ScoringSettings;
 };
 
 /**
@@ -53,10 +62,11 @@ export const DEFAULT_SETTINGS: PerformanceSettings = {
     { minMembers: 100, goal: 25, stretch: 32 },
   ],
   eventTypeGoals: { dinner: { mode: "city" } },
-  engagement: { windowDays: 90, countReactions: false, goalPct: null, stretchPct: null },
+  engagement: { windowDays: 90, countReactions: false, countVirtual: true, goalPct: null, stretchPct: null },
+  scoring: { virtualEventPct: 50 },
 };
 
-export const SETTINGS_KEYS = ["eventTiers", "eventTypeGoals", "engagement"] as const;
+export const SETTINGS_KEYS = ["eventTiers", "eventTypeGoals", "engagement", "scoring"] as const;
 export type SettingsKey = (typeof SETTINGS_KEYS)[number];
 
 /** Merge stored values over the defaults, ignoring anything malformed. */
@@ -80,9 +90,13 @@ export function resolveSettings(stored: Partial<Record<string, unknown>>): Perfo
       out.engagement.windowDays = eng.windowDays;
     }
     if (typeof eng.countReactions === "boolean") out.engagement.countReactions = eng.countReactions;
+    if (typeof eng.countVirtual === "boolean") out.engagement.countVirtual = eng.countVirtual;
     out.engagement.goalPct = numOrNull(eng.goalPct);
     out.engagement.stretchPct = numOrNull(eng.stretchPct);
   }
+  const sc = stored.scoring as Partial<ScoringSettings> | undefined;
+  const v = sc?.virtualEventPct;
+  if (typeof v === "number" && Number.isFinite(v) && v >= 0 && v <= 200) out.scoring.virtualEventPct = v;
   return out;
 }
 
@@ -252,18 +266,20 @@ export function sumRanges(ranges: (GoalRange | null)[]): GoalRange {
 export type ParticipationSignals = {
   posts?: number;
   replies?: number;
-  eventsAttended?: number; // live (in-person) events only, since 2026-10
+  eventsAttended?: number; // live (in-person) events
+  virtualAttended?: number;
   reactionsGiven?: number;
 };
 
 /**
- * Did this member participate in the window? A live event, a Slack or Circle
- * post or reply, and (if Setup says so) reactions. Circle visits join once
- * Circle logins are captured (MQ-11).
+ * Did this member participate in the window? An event (live, or virtual if
+ * Setup says so), a Slack or Circle post or reply, and (if Setup says so)
+ * reactions. Circle visits join once Circle logins are captured (MQ-11).
  */
 export function participated(s: ParticipationSignals | null | undefined, m: EngagementMeasure): boolean {
   if (!s) return false;
   if ((s.eventsAttended ?? 0) > 0) return true;
+  if (m.countVirtual && (s.virtualAttended ?? 0) > 0) return true;
   if ((s.posts ?? 0) + (s.replies ?? 0) > 0) return true;
   return m.countReactions && (s.reactionsGiven ?? 0) > 0;
 }
