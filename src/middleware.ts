@@ -7,7 +7,10 @@ const PUBLIC_PATHS = ["/sign-in", "/api/auth", "/api/cron", "/api/health", "/api
 export default async function middleware(req: NextRequest) {
   const { pathname, search } = req.nextUrl;
   if (PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
-    return NextResponse.next();
+    // Tells the root layout this page may render signed out (its backstop redirects otherwise).
+    const headers = new Headers(req.headers);
+    headers.set("x-meq-public", "1");
+    return NextResponse.next({ request: { headers } });
   }
   const user = await hubUserFromCookie(req.headers.get("cookie"));
   if (!user) {
@@ -21,5 +24,7 @@ export default async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/|favicon\\.ico|.*\\..*).*)"],
+  // "/" is listed on its own: with basePath "/meq", the pattern below alone skipped the bare
+  // /meq address, which served the Dashboard to signed-out visitors.
+  matcher: ["/", "/((?!_next/|favicon\\.ico|.*\\..*).*)"],
 };
