@@ -56,7 +56,7 @@ export function RegionChoropleth({
         maxZoom: 8,
       }).addTo(map);
 
-      const geo = (await fetch("/regions-us-states.geojson").then((r) => r.json())) as FeatureCollection<
+      const geo = (await fetch("/meq/regions-us-states.geojson").then((r) => r.json())) as FeatureCollection<
         Geometry,
         StateProps
       >;

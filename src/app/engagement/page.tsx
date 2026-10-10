@@ -145,7 +145,7 @@ export default async function EngagementPage({
           {JOINED_PRESETS.map((p) => (
             <JoinedChip key={p.key} href={`/engagement?days=${days}&joined=${p.key}`} active={!since && joined === p.key} label={p.label} />
           ))}
-          <form action="/engagement" className="flex items-end gap-2">
+          <form action="/meq/engagement" className="flex items-end gap-2">
             <input type="hidden" name="days" value={days} />
             <label className="text-[11px] uppercase tracking-wide text-[#9bb0d4]">
               Since

@@ -1,7 +1,9 @@
 "use server";
 
-import { signOut } from "@/lib/auth/config";
+import { redirect } from "next/navigation";
+import { MEMBERHUB_URL } from "@/lib/auth/memberhub";
 
+/** Sign-out happens in MemberHub (one login for both). */
 export async function signOutAction() {
-  await signOut({ redirectTo: "/sign-in" });
+  redirect(`${MEMBERHUB_URL}/sign-out`);
 }

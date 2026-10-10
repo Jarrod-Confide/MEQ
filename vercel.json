@@ -1,4 +1,10 @@
 {
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "/meq/api/:path*"
+    }
+  ],
   "crons": [
     {
       "path": "/api/cron/refresh-engagement",

@@ -10,6 +10,13 @@ import { signOutAction } from "@/app/actions/session";
  * on a phone): a fixed column on desktop, a menu button + slide-out drawer
  * below the md breakpoint. Admin shows only to admins; /admin is guarded too.
  */
+// MemberHub sections (other app zone: plain <a>, full page load). MEQ lives at /meq inside it.
+const HUB_ITEMS = [
+  { href: "/admin", label: "People", icon: "M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8m14 10v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" },
+  { href: "/admin/review", label: "Review queue", icon: "M5 3h14v18H5zM8 8h8M8 12h8M8 16h4" },
+  { href: "/admin/setup", label: "Setup", icon: "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6m7.4-3a7.4 7.4 0 0 0-.1-1.2l2-1.6-2-3.4-2.4 1a7 7 0 0 0-2-1.2L14.5 3h-5l-.4 2.6a7 7 0 0 0-2 1.2l-2.4-1-2 3.4 2 1.6a7.4 7.4 0 0 0 0 2.4l-2 1.6 2 3.4 2.4-1a7 7 0 0 0 2 1.2l.4 2.6h5l.4-2.6a7 7 0 0 0 2-1.2l2.4 1 2-3.4-2-1.6c.1-.4.1-.8.1-1.2" },
+];
+
 const ITEMS = [
   { href: "/", label: "Dashboard", icon: "M3 13h8V3H3zm10 8h8V11h-8zM3 21h8v-6H3zm10-18v6h8V3z" },
   { href: "/outreach", label: "My Priorities", icon: "M9 11l3 3 8-8M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9" },
@@ -42,8 +49,23 @@ function Icon({ d }: { d: string }) {
   );
 }
 
+const LINK = "flex items-center gap-3 rounded-lg px-3 py-2 text-[13.5px] text-[#a3b1ad] hover:bg-[#19221f] hover:text-[#e7eeec]";
+const ACTIVE = "flex items-center gap-3 rounded-lg bg-[rgba(60,201,186,0.14)] px-3 py-2 text-[13.5px] font-medium text-[#6fdccf]";
+
 function NavList({ isAdmin, active }: { isAdmin: boolean; active: string }) {
   return (
+    <>
+    <ul className="m-0 list-none space-y-0.5 p-0 pt-3">
+      {HUB_ITEMS.map((i) => (
+        <li key={i.href}>
+          <a href={i.href} className={LINK}>
+            <Icon d={i.icon} />
+            {i.label}
+          </a>
+        </li>
+      ))}
+    </ul>
+    <div className="mt-4 px-3 pb-1 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[#74837f]">MEQ</div>
     <ul className="m-0 list-none space-y-0.5 p-0">
       {ITEMS.filter((i) => !("adminOnly" in i) || isAdmin).map((i) => (
         <li key={i.href}>
@@ -51,11 +73,7 @@ function NavList({ isAdmin, active }: { isAdmin: boolean; active: string }) {
             href={i.href}
             prefetch={false}
             aria-current={i.href === active ? "page" : undefined}
-            className={
-              i.href === active
-                ? "flex items-center gap-3 rounded-md bg-[#1a2238] px-3 py-2 text-[13.5px] font-medium text-white"
-                : "flex items-center gap-3 rounded-md px-3 py-2 text-[13.5px] text-[#9bb0d4] hover:bg-[#141c2b] hover:text-white"
-            }
+            className={i.href === active ? ACTIVE : LINK}
           >
             <Icon d={i.icon} />
             {i.label}
@@ -63,15 +81,16 @@ function NavList({ isAdmin, active }: { isAdmin: boolean; active: string }) {
         </li>
       ))}
     </ul>
+    </>
   );
 }
 
 function Footer({ who }: { who: string | null }) {
   return (
-    <div className="border-t border-[#1f2a3d] px-4 py-3 text-[11px] text-[#6a7da0]">
+    <div className="border-t border-[#24302d] px-4 py-3 text-[11px] text-[#74837f]">
       {who && <div className="mb-1.5 truncate" title={who}>{who}</div>}
       <form action={signOutAction}>
-        <button type="submit" className="text-[#9bb0d4] hover:text-white">Sign out</button>
+        <button type="submit" className="text-[#a3b1ad] hover:text-[#e7eeec]">Sign out</button>
       </form>
     </div>
   );
@@ -79,10 +98,11 @@ function Footer({ who }: { who: string | null }) {
 
 function Brand() {
   return (
-    <Link href="/" prefetch={false} className="block px-4 py-4">
-      <div className="text-[15px] font-bold tracking-wide text-white">MEQ</div>
-      <div className="text-[10.5px] uppercase tracking-[0.06em] text-[#6a7da0]">Member Engagement and Quality</div>
-    </Link>
+    <a href="/admin" className="flex items-center gap-3 border-b border-[#24302d] px-4 py-3.5">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/meq/brand/ciso-society-logo-dark.png" alt="The CISO Society" className="h-9 w-auto" />
+      <span className="text-[19px] font-semibold tracking-tight text-[#e7eeec]">MemberHub</span>
+    </a>
   );
 }
 
@@ -103,7 +123,7 @@ export function Sidebar({ isAdmin, who }: { isAdmin: boolean; who: string | null
   return (
     <>
       {/* Desktop: fixed column */}
-      <aside className="sticky top-0 hidden h-screen w-56 shrink-0 flex-col border-r border-[#1f2a3d] bg-[#0d121e] md:flex">
+      <aside className="sticky top-0 hidden h-screen w-56 shrink-0 flex-col border-r border-[#24302d] bg-[#131a19] md:flex">
         <Brand />
         <nav className="flex-1 overflow-y-auto px-2" aria-label="Main">
           <NavList isAdmin={isAdmin} active={active} />
@@ -112,7 +132,7 @@ export function Sidebar({ isAdmin, who }: { isAdmin: boolean; who: string | null
       </aside>
 
       {/* Phone: top bar + drawer */}
-      <div className="sticky top-0 z-[1000] flex h-12 items-center justify-between border-b border-[#1f2a3d] bg-[#0d121e] px-3 md:hidden">
+      <div className="sticky top-0 z-[1000] flex h-12 items-center justify-between border-b border-[#24302d] bg-[#131a19] px-3 md:hidden">
         <button
           type="button"
           onClick={() => setOpen(true)}
@@ -124,13 +144,13 @@ export function Sidebar({ isAdmin, who }: { isAdmin: boolean; who: string | null
             <path d="M3 6h18M3 12h18M3 18h18" />
           </svg>
         </button>
-        <span className="text-[14px] font-bold tracking-wide text-white">MEQ</span>
+        <span className="text-[14px] font-semibold tracking-wide text-white">MemberHub · MEQ</span>
         <span className="w-9" />
       </div>
       {open && (
         <div className="fixed inset-0 z-[1001] md:hidden" role="dialog" aria-modal="true" aria-label="Menu">
           <button type="button" aria-label="Close menu" className="absolute inset-0 h-full w-full bg-black/60" onClick={() => setOpen(false)} />
-          <aside className="absolute inset-y-0 left-0 flex w-64 max-w-[80vw] flex-col border-r border-[#1f2a3d] bg-[#0d121e]">
+          <aside className="absolute inset-y-0 left-0 flex w-64 max-w-[80vw] flex-col border-r border-[#24302d] bg-[#131a19]">
             <div className="flex items-center justify-between pr-2">
               <Brand />
               <button

@@ -150,7 +150,7 @@ export default async function NewMembersPage({ searchParams }: { searchParams: P
               <Chip key={p.key} href={qs({ range: p.key, from: undefined, to: undefined, grain: undefined })} active={preset === p.key} label={p.label} />
             ))}
           </div>
-          <form action="/new-members" className="flex flex-wrap items-end gap-3 text-[12px]">
+          <form action="/meq/new-members" className="flex flex-wrap items-end gap-3 text-[12px]">
             <input type="hidden" name="region" value={scopeParam(scope)} />
             {params.ch && <input type="hidden" name="ch" value={params.ch} />}
             <label className="text-[11px] uppercase tracking-wide text-[#9bb0d4]">

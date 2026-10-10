@@ -15,7 +15,7 @@ export default function Error({
   reset: () => void;
 }) {
   useEffect(() => {
-    fetch("/api/report-error", {
+    fetch("/meq/api/report-error", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({

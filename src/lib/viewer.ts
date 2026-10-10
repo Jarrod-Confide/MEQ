@@ -1,5 +1,7 @@
 import { unstable_cache } from "next/cache";
-import { auth } from "./auth/config";
+import { headers } from "next/headers";
+import { cache } from "react";
+import { hubUserFromCookie } from "./auth/memberhub";
 import { meqDb, schema } from "./db/meq";
 import { TERRITORIES, type Territory } from "./territory";
 import { STAFF_TAG } from "./staff";
@@ -62,11 +64,14 @@ const getStaffByEmail = unstable_cache(
   { revalidate: 300, tags: [STAFF_TAG] }
 );
 
+/** The MemberHub staff session for this request (one lookup per request). */
+const currentHubUser = cache(async () => hubUserFromCookie((await headers()).get("cookie")));
+
 /** Who is signed in, whether they're an admin, and which regions are theirs. */
 export async function getViewer(): Promise<Viewer> {
-  const session = await auth();
-  const email = session?.user?.email?.toLowerCase() ?? null;
-  const name = session?.user?.name ?? null;
+  const hub = await currentHubUser();
+  const email = hub?.email ?? null;
+  const name = hub?.name ?? null;
   if (!email) return { email: null, name, isAdmin: false, staff: null };
   const [isAdmin, staffRows] = await Promise.all([isAdminEmail(email), getStaffByEmail().catch(() => [])]);
   const s = staffRows.find((r) => r.email?.toLowerCase() === email);
