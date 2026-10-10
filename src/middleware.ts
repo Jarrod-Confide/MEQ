@@ -10,7 +10,13 @@ export default async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
   const user = await hubUserFromCookie(req.headers.get("cookie"));
-  if (!user) return NextResponse.redirect(memberHubSignIn(pathname + search));
+  if (!user) {
+    // Background data requests (RSC/prefetch) get a plain 401 rather than a sign-in redirect.
+    if (req.headers.get("rsc") === "1" || req.headers.get("next-router-prefetch")) {
+      return new NextResponse(null, { status: 401 });
+    }
+    return NextResponse.redirect(memberHubSignIn(pathname + search));
+  }
   return NextResponse.next();
 }
 
