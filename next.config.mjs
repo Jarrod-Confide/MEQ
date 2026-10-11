@@ -13,7 +13,9 @@ const nextConfig = {
     return [
       // Old bookmarks to meq.confide.group pages -> the same page inside MemberHub.
       {
-        source: "/:path((?!api/|_next/|meq(?:/|$)).*)",
+        // Skips anything already under /meq, including the Dashboard's data file "/meq.rsc"
+        // (MemberHub's proxy arrives with this host too; redirecting that broke the Dashboard).
+        source: "/:path((?!api/|_next/|meq(?:[/.]|$)).*)",
         has: [{ type: "host", value: "meq.confide.group" }],
         destination: `${MEMBERHUB}/meq/:path`,
         basePath: false,
