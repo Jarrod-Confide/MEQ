@@ -6,15 +6,16 @@ export const dynamic = "force-dynamic";
 /**
  * Posts a test message to #system-status to prove alerting works end to end
  * (env var set, webhook valid, Slack reachable). Bearer CRON_SECRET; not
- * scheduled. Use it after rotating SLACK_ALERT_WEBHOOK.
+ * scheduled. Use it after rotating SLACK_ALERTS_BOT_TOKEN or SLACK_ALERT_WEBHOOK.
  */
 export async function GET(request: Request) {
   const secret = process.env.CRON_SECRET;
   if (!secret || request.headers.get("authorization") !== `Bearer ${secret}`) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
-  if (!process.env.SLACK_ALERT_WEBHOOK) {
-    return NextResponse.json({ ok: false, error: "SLACK_ALERT_WEBHOOK is not set" }, { status: 500 });
+  const botReady = !!(process.env.SLACK_ALERTS_BOT_TOKEN && process.env.SLACK_ALERTS_CHANNEL_ID);
+  if (!botReady && !process.env.SLACK_ALERT_WEBHOOK) {
+    return NextResponse.json({ ok: false, error: "Neither SLACK_ALERTS_BOT_TOKEN + SLACK_ALERTS_CHANNEL_ID nor SLACK_ALERT_WEBHOOK is set" }, { status: 500 });
   }
   const delivered = await notifySlack(
     "test alert: MEQ is connected to #system-status. Cron failures and page errors will post here."
