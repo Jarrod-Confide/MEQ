@@ -7,6 +7,7 @@ import { timingSafeEqual } from "node:crypto";
  */
 const TOKENS: Record<string, string> = {
   eventflow: "MEQ_TOKEN_EVENTFLOW",
+  memberhub: "MEQ_TOKEN_MEMBERHUB",
 };
 
 export function callerFor(req: Request): string | null {

@@ -31,7 +31,7 @@ export const dynamic = "force-dynamic";
  *                community manager.
  */
 export async function GET(req: Request) {
-  if (!callerFor(req)) {
+  if (callerFor(req) !== "eventflow") {
     return Response.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
 
