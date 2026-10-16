@@ -1,4 +1,4 @@
-import { isNotNull } from "drizzle-orm";
+import { and, eq, isNotNull } from "drizzle-orm";
 import { meqDb, schema } from "./db/meq";
 import { getEngagement } from "./engagement-cache";
 import { type MemberScore, type Tier, type Dimension } from "./engagement";
@@ -39,7 +39,8 @@ export async function getFullLeaderboard(days: number): Promise<FullLeaderboard>
         isMember: schema.members.isMember,
       })
       .from(schema.members)
-      .where(isNotNull(schema.members.eventflowContactId)),
+      // Current members only: leavers keep their row with is_member = false.
+      .where(and(isNotNull(schema.members.eventflowContactId), eq(schema.members.isMember, true))),
   ]);
 
   const activeEf = new Set<string>();

@@ -54,32 +54,32 @@ export async function fetchDashboard(): Promise<DashboardData> {
             AND joined_at <  NOW() - INTERVAL '30 days'
         )::int AS prior_30d,
         MAX(last_synced_at) AS synced_at
-      FROM members
+      FROM members WHERE is_member
     `,
     meqSql<{ month: string; count: number }[]>`
       SELECT to_char(date_trunc('month', joined_at), 'YYYY-MM') AS month,
              COUNT(*)::int AS count
       FROM members
-      WHERE joined_at >= date_trunc('month', NOW() - INTERVAL '11 months')
+      WHERE is_member AND joined_at >= date_trunc('month', NOW() - INTERVAL '11 months')
       GROUP BY 1 ORDER BY 1 ASC
     `,
     meqSql<{ tier: string; n: number }[]>`
-      SELECT COALESCE(quality_tier, 'Unranked') AS tier, COUNT(*)::int AS n
-      FROM member_quality GROUP BY 1
+      SELECT COALESCE(q.quality_tier, 'Unranked') AS tier, COUNT(*)::int AS n
+      FROM member_quality q JOIN members m ON m.id = q.member_id AND m.is_member GROUP BY 1
     `,
     meqSql<{ name: string; count: number }[]>`
       SELECT closest_major_city AS name, COUNT(*)::int AS count
       FROM members
-      WHERE closest_major_city IS NOT NULL AND closest_major_city <> ''
+      WHERE is_member AND closest_major_city IS NOT NULL AND closest_major_city <> ''
       GROUP BY 1 ORDER BY count DESC LIMIT 5
     `,
   ]);
 
   const [companies, composition, eventAttendees, trend] = await Promise.all([
     meqSql<{ name: string; count: number }[]>`
-      SELECT company AS name, COUNT(*)::int AS count
-      FROM member_quality
-      WHERE company IS NOT NULL AND company <> ''
+      SELECT q.company AS name, COUNT(*)::int AS count
+      FROM member_quality q JOIN members m ON m.id = q.member_id AND m.is_member
+      WHERE q.company IS NOT NULL AND q.company <> ''
       GROUP BY 1 ORDER BY count DESC LIMIT 5
     `,
     meqSql<
@@ -94,10 +94,10 @@ export async function fetchDashboard(): Promise<DashboardData> {
       SELECT
         COUNT(*) FILTER (WHERE is_fortune_2000)::int AS f2000,
         COUNT(*) FILTER (WHERE employment_type = 'self_employed')::int AS vciso,
-        COUNT(*) FILTER (WHERE company_size IN ('1,001-5,000','5,001-10,000','10,000+'))::int AS large_co,
+        COUNT(*) FILTER (WHERE q.company_size IN ('1,001-5,000','5,001-10,000','10,000+'))::int AS large_co,
         COUNT(*) FILTER (WHERE seniority = 'C-Level')::int AS c_level,
         COUNT(*) FILTER (WHERE reporting_to IN ('CEO','Board'))::int AS ceo
-      FROM member_quality
+      FROM member_quality q JOIN members m ON m.id = q.member_id AND m.is_member
     `,
     eventflowSql<{ n: number }[]>`
       SELECT COUNT(DISTINCT a.contact_id)::int AS n

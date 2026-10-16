@@ -4,7 +4,7 @@ import { meqDb, meqSql, schema } from "./db/meq";
 import { getEngagement } from "./engagement-cache";
 import { getSettings } from "./settings";
 import { safeIso } from "./safe-date";
-import { territoryFromCity, type Territory } from "./territory";
+import { memberRegion, type Territory } from "./territory";
 import {
   eventGoal,
   eventRegion,
@@ -33,17 +33,17 @@ type RosterRow = { city: string | null; region: Territory; joinedAt: string | nu
 
 const getRoster = unstable_cache(
   async (): Promise<RosterRow[]> => {
-    const rows = await meqSql<{ city: string | null; joined_at: Date | null; ef: string | null }[]>`
-      SELECT closest_major_city AS city, joined_at, eventflow_contact_id AS ef
+    const rows = await meqSql<{ city: string | null; region: string | null; joined_at: Date | null; ef: string | null }[]>`
+      SELECT closest_major_city AS city, region, joined_at, eventflow_contact_id AS ef
       FROM members WHERE is_member`;
     return rows.map((r) => ({
       city: r.city,
-      region: territoryFromCity(r.city),
+      region: memberRegion(r.region, r.city),
       joinedAt: safeIso(r.joined_at),
       efId: r.ef,
     }));
   },
-  ["goals-roster-v1"],
+  ["goals-roster-v2"],
   { revalidate: TEN_MIN, tags: [GOALS_TAG] }
 );
 

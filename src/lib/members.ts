@@ -1,4 +1,4 @@
-import { eq, isNotNull } from "drizzle-orm";
+import { and, eq, isNotNull } from "drizzle-orm";
 import { meqDb, schema } from "./db/meq";
 import { CITY_GEO, flagForCity, type GeoCity } from "./cities";
 import { getEngagement } from "./engagement-cache";
@@ -61,7 +61,7 @@ export async function fetchMemberMap(): Promise<MemberMapData> {
       })
       .from(schema.members)
       .leftJoin(schema.memberQuality, eq(schema.memberQuality.memberId, schema.members.id))
-      .where(isNotNull(schema.members.closestMajorCity)),
+      .where(and(isNotNull(schema.members.closestMajorCity), eq(schema.members.isMember, true))),
     getEngagement(90),
   ]);
 

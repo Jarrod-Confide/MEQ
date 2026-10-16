@@ -1,4 +1,4 @@
-import { sql, isNotNull, eq } from "drizzle-orm";
+import { sql, isNotNull, eq, and, or, isNull, ne } from "drizzle-orm";
 import { meqDb, schema } from "../db/meq";
 import { batchReadContacts, batchRead, batchReadAssociations } from "../hubspot";
 import { isFortune2000 } from "../fortune";
@@ -89,7 +89,7 @@ export async function enrichQuality(): Promise<QualityStats> {
       company: schema.members.company,
     })
     .from(schema.members)
-    .where(isNotNull(schema.members.hubspotContactId));
+    .where(and(isNotNull(schema.members.hubspotContactId), eq(schema.members.isMember, true)));
 
   const idToMember = new Map(rows.map((r) => [r.hubspotContactId as string, r]));
   const contactIds = rows.map((r) => r.hubspotContactId as string);
@@ -274,7 +274,8 @@ export async function enrichQuality(): Promise<QualityStats> {
         meqDb
           .update(schema.members)
           .set({ joinedAt, joinedSource: source, updatedAt: new Date() })
-          .where(eq(schema.members.id, memberId))
+          // MemberHub's join date (when they became Active) wins over HubSpot's.
+          .where(and(eq(schema.members.id, memberId), or(isNull(schema.members.joinedSource), ne(schema.members.joinedSource, "memberhub"))))
       )
     );
     joinedAtUpdated += slice.length;

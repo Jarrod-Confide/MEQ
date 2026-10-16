@@ -1,7 +1,7 @@
 import { sql as drizzleSql, and, eq, notInArray } from "drizzle-orm";
 import { meqDb, schema } from "../db/meq";
 import { computeEngagement } from "../engagement";
-import { territoryFromCity } from "../territory";
+import { memberRegion } from "../territory";
 import type { NewMemberEngagementSnapshot } from "../db/schema";
 
 /** Monday 00:00 UTC of the week containing `d`. */
@@ -33,6 +33,7 @@ export async function writeSnapshot(asOf: Date = new Date()): Promise<SnapshotSt
         id: schema.members.id,
         eventflowContactId: schema.members.eventflowContactId,
         city: schema.members.closestMajorCity,
+        region: schema.members.region,
         qualityScore: schema.memberQuality.qualityScore,
         qualityTier: schema.memberQuality.qualityTier,
       })
@@ -53,7 +54,7 @@ export async function writeSnapshot(asOf: Date = new Date()): Promise<SnapshotSt
       name: m.name,
       isMember: m.isMember,
       matched: m.matched,
-      territory: member ? territoryFromCity(member.city) : "OTHER",
+      territory: member ? memberRegion(member.region, member.city) : "OTHER",
       total: m.total,
       tier: m.tier,
       dimensions: m.dimensions as Record<string, number>,

@@ -2,6 +2,7 @@ import { eq, sql, lt, or, isNull } from "drizzle-orm";
 import { meqDb, schema } from "../db/meq";
 import { eventflowSql, slackleSql } from "../db";
 import type { NewMember } from "../db/schema";
+import { syncMembersFromMemberHub } from "./members-memberhub";
 
 export type SyncStats = {
   contactsSeen: number;
@@ -32,11 +33,23 @@ function parseEmails(
 }
 
 /**
+ * Where the roster comes from: MEMBER_SOURCE=memberhub reads MemberHub (the
+ * system of record, one way); anything else keeps the EventFlow copy.
+ */
+export async function syncMembers(): Promise<SyncStats> {
+  if (process.env.MEMBER_SOURCE === "memberhub") {
+    const r = await syncMembersFromMemberHub({ dryRun: false });
+    return r.stats!;
+  }
+  return syncMembersFromEventflow();
+}
+
+/**
  * Daily roster sync. EventFlow contacts → MEQ members (canonical), enriched
  * with Slack/Circle IDs by matching Slackle members on any of the contact's
  * emails. Upserts keyed on eventflow_contact_id.
  */
-export async function syncMembers(): Promise<SyncStats> {
+async function syncMembersFromEventflow(): Promise<SyncStats> {
   const [run] = await meqDb
     .insert(schema.memberSyncRuns)
     .values({})

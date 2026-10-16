@@ -1,4 +1,4 @@
-import { desc, eq, isNotNull } from "drizzle-orm";
+import { and, desc, eq, isNotNull } from "drizzle-orm";
 import { meqDb, schema } from "./db/meq";
 import { QUALITY_TIER_ORDER } from "./quality-tiers";
 import { safeIso } from "./safe-date";
@@ -101,7 +101,7 @@ export async function fetchQuality(): Promise<QualityData> {
       syncedAt: schema.memberQuality.syncedAt,
     })
     .from(schema.memberQuality)
-    .leftJoin(schema.members, eq(schema.memberQuality.memberId, schema.members.id))
+    .innerJoin(schema.members, and(eq(schema.memberQuality.memberId, schema.members.id), eq(schema.members.isMember, true)))
     .orderBy(desc(schema.memberQuality.qualityScore), schema.memberQuality.name);
 
   const nowMs = Date.now();

@@ -1,7 +1,7 @@
 import { callerFor } from "@/lib/api-auth";
 import { readStoredEngagement } from "@/lib/engagement-store";
 import { meqSql } from "@/lib/db/meq";
-import { territoryFromCity } from "@/lib/territory";
+import { memberRegion } from "@/lib/territory";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -39,8 +39,8 @@ export async function GET(req: Request) {
     readStoredEngagement(90),
     readStoredEngagement(9999),
     // MEQ's own roster, one query, same database as the two above.
-    meqSql<{ contact_id: string; city: string | null }[]>`
-      SELECT eventflow_contact_id::text AS contact_id, closest_major_city AS city
+    meqSql<{ contact_id: string; city: string | null; region: string | null; member_number: number | null }[]>`
+      SELECT eventflow_contact_id::text AS contact_id, closest_major_city AS city, region, member_number
         FROM members
        WHERE eventflow_contact_id IS NOT NULL`,
   ]);
@@ -49,7 +49,7 @@ export async function GET(req: Request) {
   }
 
   const tierByKey = new Map((recent?.members ?? []).map((m) => [m.key, m.tier]));
-  const cityByContact = new Map(cities.map((c) => [c.contact_id, c.city]));
+  const rosterByContact = new Map(cities.map((c) => [c.contact_id, c]));
   const members = allTime.members
     .filter((m) => m.matched && m.isMember && m.key.startsWith("c:"))
     .map((m) => ({
@@ -58,7 +58,10 @@ export async function GET(req: Request) {
       slackPosts: (m.signals?.posts ?? 0) + (m.signals?.replies ?? 0),
       referrals: m.signals?.referrals ?? 0,
       lastSlackAt: m.lastSlackAt ?? null,
-      region: territoryFromCity(cityByContact.get(m.key.slice(2)) ?? null),
+      region: memberRegion(rosterByContact.get(m.key.slice(2))?.region, rosterByContact.get(m.key.slice(2))?.city),
+      // MemberHub's permanent number, so EventFlow can join on it (null until
+      // the MemberHub roster sync has run).
+      memberNumber: rosterByContact.get(m.key.slice(2))?.member_number ?? null,
     }));
 
   return Response.json(

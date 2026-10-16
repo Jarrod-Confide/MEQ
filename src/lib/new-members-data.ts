@@ -1,7 +1,7 @@
 import { unstable_cache } from "next/cache";
 import { meqSql } from "./db/meq";
 import { safeIso } from "./safe-date";
-import { territoryFromCity, type Territory } from "./territory";
+import { memberRegion, type Territory } from "./territory";
 
 export const NEW_MEMBERS_TAG = "new-members";
 
@@ -30,6 +30,7 @@ export const getJoinedMembers = unstable_cache(
         last_name: string | null;
         display_name: string | null;
         city: string | null;
+        region: string | null;
         ef: string | null;
         joined_at: Date;
         first_event_at: Date | null;
@@ -37,7 +38,7 @@ export const getJoinedMembers = unstable_cache(
         first_post_at: Date | null;
         first_reaction_at: Date | null;
       }[]
-    >`SELECT m.first_name, m.last_name, m.display_name, m.closest_major_city AS city,
+    >`SELECT m.first_name, m.last_name, m.display_name, m.closest_major_city AS city, m.region,
              m.eventflow_contact_id AS ef, m.joined_at,
              mm.first_event_at, mm.first_virtual_at, mm.first_post_at, mm.first_reaction_at
       FROM members m LEFT JOIN member_milestones mm ON mm.member_id = m.id
@@ -49,7 +50,7 @@ export const getJoinedMembers = unstable_cache(
         {
           name: [r.first_name, r.last_name].filter(Boolean).join(" ") || r.display_name || "(no name)",
           city: r.city,
-          region: territoryFromCity(r.city),
+          region: memberRegion(r.region, r.city),
           efId: r.ef,
           joinedAt,
           firstEventAt: safeIso(r.first_event_at),
@@ -60,7 +61,7 @@ export const getJoinedMembers = unstable_cache(
       ];
     });
   },
-  ["new-members-v1"],
+  ["new-members-v2"],
   { revalidate: 600, tags: [NEW_MEMBERS_TAG] }
 );
 

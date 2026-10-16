@@ -25,6 +25,9 @@ export const members = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
 
     // ── Identity ──
+    // MemberHub's permanent member number: the key from 2026-10-15 (MemberHub
+    // is the system of record; MEQ reads it one way, never writes back).
+    memberNumber: integer("member_number").unique(),
     hubspotContactId: text("hubspot_contact_id").unique(),
     eventflowContactId: uuid("eventflow_contact_id").unique(),
     slackUserId: text("slack_user_id"),
@@ -42,6 +45,9 @@ export const members = pgTable(
     membershipType: text("membership_type"),
     isMember: boolean("is_member").notNull().default(false),
     closestMajorCity: text("closest_major_city"),
+    // MemberHub's community region (state first, then city). Null until the
+    // MemberHub sync runs; readers fall back to territoryFromCity.
+    region: text("region"),
 
     // ── Company quality (populated by a later enrichment pass) ──
     companySize: text("company_size"),

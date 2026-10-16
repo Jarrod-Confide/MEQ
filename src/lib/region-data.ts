@@ -3,7 +3,7 @@ import { eq, isNotNull } from "drizzle-orm";
 import { meqDb, meqSql, schema } from "./db/meq";
 import { getFullLeaderboard } from "./leaderboard";
 import { CITY_GEO } from "./cities";
-import { territoryFromCity, TERRITORIES, type Territory } from "./territory";
+import { memberRegion, territoryFromCity, TERRITORIES, type Territory } from "./territory";
 
 /**
  * Live region rollups for the CM Regions dashboard. Buckets the FULL
@@ -61,6 +61,7 @@ async function fetchRegions(days: number): Promise<RegionsData> {
       .select({
         ef: schema.members.eventflowContactId,
         city: schema.members.closestMajorCity,
+        region: schema.members.region,
         email: schema.members.email,
         company: schema.memberQuality.company,
         qualityScore: schema.memberQuality.qualityScore,
@@ -81,7 +82,7 @@ async function fetchRegions(days: number): Promise<RegionsData> {
     if (!m.key.startsWith("c:")) continue; // only matched members carry a home city
     const info = rosterByEf.get(m.key.slice(2));
     const city = info?.city ?? null;
-    membersByRegion[territoryFromCity(city)].push({
+    membersByRegion[memberRegion(info?.region, city)].push({
       key: m.key,
       name: m.name,
       total: m.total,
@@ -189,7 +190,7 @@ export async function fetchRegionCityTrends(region: Territory): Promise<CityTren
     meqSql<{ city: string | null; n: number }[]>`
       SELECT closest_major_city city, COUNT(*)::int n
       FROM members
-      WHERE eventflow_contact_id IS NOT NULL AND closest_major_city IS NOT NULL
+      WHERE is_member AND eventflow_contact_id IS NOT NULL AND closest_major_city IS NOT NULL
       GROUP BY closest_major_city`,
   ]);
 

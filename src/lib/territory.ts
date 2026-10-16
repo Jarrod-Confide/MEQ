@@ -82,6 +82,14 @@ export function regionFromState(state: string | null | undefined): Territory {
   return STATE_TO_REGION[state.toUpperCase()] ?? "OTHER";
 }
 
+/**
+ * A member's region: MemberHub's (state first, then city) when the roster
+ * came from MemberHub, else MEQ's own rule from the closest major city.
+ */
+export function memberRegion(region: string | null | undefined, city: string | null | undefined): Territory {
+  return region && (TERRITORIES as readonly string[]).includes(region) ? (region as Territory) : territoryFromCity(city);
+}
+
 /** Assign a region from a closest-major-city name (via CITY_GEO → state). */
 export function territoryFromCity(city: string | null | undefined): Territory {
   if (!city) return "OTHER";

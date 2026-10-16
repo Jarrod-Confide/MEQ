@@ -1,6 +1,6 @@
 import { unstable_cache } from "next/cache";
 import { meqSql } from "./db/meq";
-import { territoryFromCity, type Territory } from "./territory";
+import { memberRegion, type Territory } from "./territory";
 import { TERRITORY_GOALS, type GoalKey } from "./goals";
 
 export type TrendPoint = {
@@ -96,10 +96,10 @@ export async function fetchTerritory(territory: Territory): Promise<TerritoryDat
       WHERE territory = ${territory}
         AND week_start = (SELECT MIN(week_start) FROM member_engagement_snapshots)`,
     // New members (joined < 90d) with city → for territory bucketing + activation.
-    meqSql<{ member_id: string; city: string | null; joined_at: Date | null }[]>`
-      SELECT id member_id, closest_major_city city, joined_at
+    meqSql<{ member_id: string; city: string | null; region: string | null; joined_at: Date | null }[]>`
+      SELECT id member_id, closest_major_city city, region, joined_at
       FROM members
-      WHERE joined_at >= NOW() - INTERVAL '90 days'`,
+      WHERE is_member AND joined_at >= NOW() - INTERVAL '90 days'`,
   ]);
 
   const trend: TrendPoint[] = trendRows.map((r) => ({
@@ -136,7 +136,7 @@ export async function fetchTerritory(territory: Territory): Promise<TerritoryDat
   }
 
   // New members in this territory (city → territory).
-  const newInTerr = newMembers.filter((m) => territoryFromCity(m.city) === territory);
+  const newInTerr = newMembers.filter((m) => memberRegion(m.region, m.city) === territory);
   const newIn30d = newInTerr.filter((m) => m.joined_at && Date.now() - new Date(m.joined_at).getTime() <= 30 * 86400000).length;
   const newIds = new Set(newInTerr.map((m) => m.member_id));
   const currentTierByMember = new Map(current.filter((r) => r.member_id).map((r) => [r.member_id as string, r.tier]));
