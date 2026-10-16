@@ -18,6 +18,7 @@ export type HubMember = {
   region: "NE" | "CENTRAL" | "WEST" | "SE" | "OTHER";
   industry: string | null;
   company_size: string | null;
+  referred_by?: string | null;
   accounts?: { hubspot_contact_id: string | null; circle_member_id: string | null; slack_user_id: string | null };
   emails?: { address: string; kind: string; status: string; purposes: string[] }[];
   email_for?: { login: string | null };

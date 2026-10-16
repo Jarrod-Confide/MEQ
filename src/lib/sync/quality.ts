@@ -87,6 +87,10 @@ export async function enrichQuality(): Promise<QualityStats> {
       hubspotContactId: schema.members.hubspotContactId,
       name: schema.members.displayName,
       company: schema.members.company,
+      memberNumber: schema.members.memberNumber,
+      industry: schema.members.industry,
+      companySize: schema.members.companySize,
+      referredBy: schema.members.referredBy,
     })
     .from(schema.members)
     .where(and(isNotNull(schema.members.hubspotContactId), eq(schema.members.isMember, true)));
@@ -130,13 +134,21 @@ export async function enrichQuality(): Promise<QualityStats> {
   // Raw 'Referred/Invited By' text per member, resolved after joined_at lands.
   const referralPairs: { referredMemberId: string; rawName: string }[] = [];
 
+  // Members read from MemberHub (2026-10-16): company name, industry and size
+  // and the referred-by answer come from MemberHub; HubSpot only fills a
+  // company detail MemberHub doesn't have. Seniority, reporting line, team
+  // size and email clicks still come from HubSpot.
+  const memberhubSource = process.env.MEMBER_SOURCE !== "eventflow";
+
   for (const c of contacts) {
     const member = idToMember.get(c.id);
     if (!member) continue;
     const p = c.properties;
+    const fromHub = memberhubSource && member.memberNumber != null;
 
-    if (p.referred_invited_by?.trim()) {
-      referralPairs.push({ referredMemberId: member.id, rawName: p.referred_invited_by.trim() });
+    const referredRaw = (fromHub ? member.referredBy : p.referred_invited_by)?.trim();
+    if (referredRaw) {
+      referralPairs.push({ referredMemberId: member.id, rawName: referredRaw });
     }
 
     // Membership join date: prefer the CISO Society-specific property; fall
@@ -169,9 +181,12 @@ export async function enrichQuality(): Promise<QualityStats> {
     // reliable for Fortune 2000 matching than the contact free-text.
     const primaryCompanyId = contactToCompanies.get(c.id)?.[0];
     const companyObj = primaryCompanyId ? companyById.get(primaryCompanyId) : null;
-    const company = companyObj?.name || p.company || member.company || null;
-    const companySize = companyObj?.size || p.numemployees || null;
-    const industry = companyObj?.industry || null;
+    const hsCompany = companyObj?.name || p.company || null;
+    const hsSize = companyObj?.size || p.numemployees || null;
+    const hsIndustry = companyObj?.industry || null;
+    const company = (fromHub ? member.company || hsCompany : hsCompany || member.company) || null;
+    const companySize = (fromHub ? member.companySize || hsSize : hsSize) || null;
+    const industry = (fromHub ? member.industry || hsIndustry : hsIndustry) || null;
     const employmentType = classifyEmployment(p.current_employment_status);
     const isF2000 = isFortune2000(company);
     const isHigh = isF2000; // v1 definition

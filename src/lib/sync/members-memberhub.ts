@@ -25,12 +25,14 @@ export type MemberHubReport = {
   created: { member_number: number; name: string; hasEventflowContact: boolean }[];
   duplicates: { member_number: number; name: string }[];
   joinedChanges: { member_number: number; name: string; from: string | null; to: string | null }[];
+  /** MemberHub vs what MEQ uses today (HubSpot, via member_quality / member_referrals). */
+  fieldDiffs: Record<string, { differ: number; memberhubBlank: number; examples: { name: string; meq: string | null; memberhub: string | null }[] }>;
 };
 
 const nameOf = (h: HubMember) => [h.first_name, h.last_name].filter(Boolean).join(" ").trim() || `#${h.member_number}`;
 
 export async function syncMembersFromMemberHub(opts: { dryRun: boolean }): Promise<MemberHubReport & { stats?: SyncStats }> {
-  const [roster, rows, efRows] = await Promise.all([
+  const [roster, rows, efRows, current] = await Promise.all([
     fetchMemberHubRoster(),
     meqSql<
       {
@@ -52,6 +54,12 @@ export async function syncMembersFromMemberHub(opts: { dryRun: boolean }): Promi
     // EventFlow already carries MemberHub's member number on every contact.
     eventflowSql<{ id: string; member_number: number }[]>`
       SELECT id, member_number FROM contacts WHERE member_number IS NOT NULL AND deleted_at IS NULL`,
+    // What quality + referrals use today, to show what switching changes.
+    meqSql<{ id: string; company: string | null; industry: string | null; company_size: string | null; referred_raw: string | null }[]>`
+      SELECT m.id, q.company, q.industry, q.company_size, r.raw_name AS referred_raw
+      FROM members m
+      LEFT JOIN member_quality q ON q.member_id = m.id
+      LEFT JOIN member_referrals r ON r.referred_member_id = m.id`,
   ]);
 
   const meqRows: MeqMemberRow[] = rows.map((r) => ({
@@ -70,7 +78,31 @@ export async function syncMembersFromMemberHub(opts: { dryRun: boolean }): Promi
   const plan = planMemberHubSync(meqRows, roster.members, efByNumber);
   const rowById = new Map(rows.map((r) => [r.id, r]));
 
+  const currentById = new Map(current.map((c) => [c.id, c]));
+  const norm = (v: string | null | undefined) => (v ?? "").trim().toLowerCase();
+  const fieldDiffs: MemberHubReport["fieldDiffs"] = {};
+  const fieldsToCompare: [string, (h: HubMember) => string | null, (c: (typeof current)[number]) => string | null][] = [
+    ["company", (h) => h.company, (c) => c.company],
+    ["industry", (h) => h.industry, (c) => c.industry],
+    ["company_size", (h) => h.company_size, (c) => c.company_size],
+    ["referred_by", (h) => h.referred_by ?? null, (c) => c.referred_raw],
+  ];
+  for (const [field, hubVal, meqVal] of fieldsToCompare) {
+    const d = { differ: 0, memberhubBlank: 0, examples: [] as { name: string; meq: string | null; memberhub: string | null }[] };
+    for (const m of plan.matched) {
+      const c = currentById.get(m.rowId);
+      const a = meqVal(c ?? ({} as (typeof current)[number])) ?? null;
+      const b = hubVal(m.hub) ?? null;
+      if (norm(a) === norm(b)) continue;
+      if (!norm(b)) d.memberhubBlank++;
+      else d.differ++;
+      if (d.examples.length < 12) d.examples.push({ name: nameOf(m.hub), meq: a, memberhub: b });
+    }
+    fieldDiffs[field] = d;
+  }
+
   const report: MemberHubReport = {
+    fieldDiffs,
     dryRun: opts.dryRun,
     asOf: roster.asOf,
     counts: plan.counts,
@@ -119,6 +151,7 @@ export async function syncMembersFromMemberHub(opts: { dryRun: boolean }): Promi
         joined_at: h.joined_at,
         industry: h.industry,
         company_size: h.company_size,
+        referred_by: h.referred_by?.trim() || null,
       };
     };
 
@@ -151,13 +184,15 @@ export async function syncMembersFromMemberHub(opts: { dryRun: boolean }): Promi
           joined_source = CASE WHEN x.joined_at IS NOT NULL THEN 'memberhub' ELSE m.joined_source END,
           industry = COALESCE(x.industry, m.industry),
           company_size = COALESCE(x.company_size, m.company_size),
+          referred_by = x.referred_by,
           last_synced_at = ${now.toISOString()},
           updated_at = ${now.toISOString()}
         FROM jsonb_to_recordset(${chunk}::jsonb) AS x(
           id uuid, member_number int, hubspot_contact_id text, eventflow_contact_id uuid,
           slack_user_id text, circle_member_id text, email text, additional_emails jsonb,
           first_name text, last_name text, display_name text, company text, job_title text,
-          closest_major_city text, region text, joined_at timestamptz, industry text, company_size text)
+          closest_major_city text, region text, joined_at timestamptz, industry text, company_size text,
+          referred_by text)
         WHERE m.id = x.id`;
     }
 
@@ -185,6 +220,7 @@ export async function syncMembersFromMemberHub(opts: { dryRun: boolean }): Promi
             joinedSource: f.joined_at ? "memberhub" : null,
             industry: f.industry,
             companySize: f.company_size,
+            referredBy: f.referred_by,
             lastSyncedAt: now,
             updatedAt: now,
           };

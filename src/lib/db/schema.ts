@@ -48,6 +48,9 @@ export const members = pgTable(
     // MemberHub's community region (state first, then city). Null until the
     // MemberHub sync runs; readers fall back to territoryFromCity.
     region: text("region"),
+    // Who referred them, their own answer, from MemberHub (was HubSpot's
+    // 'Referred/Invited By'). Resolved to a member or staff by the quality sync.
+    referredBy: text("referred_by"),
 
     // ── Company quality (populated by a later enrichment pass) ──
     companySize: text("company_size"),
