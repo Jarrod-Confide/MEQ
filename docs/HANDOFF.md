@@ -34,6 +34,8 @@ npm test                                 # unit tests (also run by every build)
 | `HUBSPOT_PRIVATE_APP_TOKEN` | HubSpot (quality, email clicks, referrer field) |
 | `ANTHROPIC_API_KEY` | Claude Haiku scores message substance |
 | `MEQ_TOKEN_EVENTFLOW` | Bearer EventFlow uses to call `/api/v1/member-stats` |
+| `MEQ_TOKEN_MEMBERHUB` | Bearer MemberHub uses to call `/api/v1/member-scores` (same value as MemberHub's `MEQ_API_TOKEN`) |
+| `MEMBERHUB_API_KEY`, `MEMBERHUB_API_URL` | MEQ's read-only key for MemberHub's members API (roster source) |
 | `SLACK_ALERT_WEBHOOK` | Incoming webhook to #system-status for cron and page-error alerts. Alerts are silent until it's set. |
 
 **Rotating a secret:** set it in Vercel for the **Production** scope, then push a commit. The Redeploy button reuses the old environment snapshot and will not pick up the change.
@@ -58,6 +60,7 @@ Navigation is a sidebar (`src/components/Sidebar.tsx`, rendered by the root layo
 | `/admin` | **Admin** (admins only): Setup, Expansion cities, Staff & referrals, Admins, Unmatched cities |
 | `/api/health` | Public health check for Confide Heartbeat (see Monitoring) |
 | `/api/v1/member-stats` | Per-member tier, Slack activity, referrals and region for EventFlow (bearer `MEQ_TOKEN_EVENTFLOW`) |
+| `/api/v1/member-scores` | Per-member engagement (90-day + all-time) and quality scores and tiers, keyed by MemberHub member number, for MemberHub's nightly copy (bearer `MEQ_TOKEN_MEMBERHUB`, caller memberhub only). Stored data only. |
 
 ## Regions
 
