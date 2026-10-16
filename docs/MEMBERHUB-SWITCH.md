@@ -2,6 +2,8 @@
 
 **Status (2026-10-15): switched.** MEQ reads members from MemberHub by default (`MEMBER_SOURCE=eventflow` in Vercel falls back). Dry run first: 2,277 of 2,277 matched, 0 created, 0 leavers, 0 duplicates. Jarrod's decisions: region comes from the closest major city (MEQ ignores MemberHub's state-first `region`); the 8 non-staff members with no MemberHub join date get HubSpot's date set in MemberHub (asked of the MemberHub session); MEQ keeps its date when MemberHub's is null. Deferred: `m:<member_number>` keys (every member has an EventFlow contact, so `c:` keys keep working). Dry run any time: `GET /api/cron/memberhub-compare` (Bearer CRON_SECRET).
 
+**2026-10-16:** company name, industry and size, and the referred-by answer, also come from MemberHub (`members.referred_by`, migration 0015; HubSpot only fills a company detail MemberHub lacks). HubSpot still supplies seniority, reporting line, team size and email clicks for the quality score. First run: 15 more members ranked (Unranked 359 to 344), Fortune 2000 123 to 122, member referrals 259 to 260.
+
 The hand-off from MemberHub follows.
 
 ---
