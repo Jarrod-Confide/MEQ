@@ -17,7 +17,7 @@ export async function GET(request: Request) {
   }
   try {
     const report = await syncMembersFromMemberHub({ dryRun: true });
-    return NextResponse.json({ ok: true, source: process.env.MEMBER_SOURCE ?? "eventflow", ...report });
+    return NextResponse.json({ ok: true, source: process.env.MEMBER_SOURCE === "eventflow" ? "eventflow" : "memberhub", ...report });
   } catch (err) {
     return NextResponse.json({ ok: false, error: String(err) }, { status: 500 });
   }

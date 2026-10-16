@@ -79,13 +79,13 @@ describe("planMemberHubSync", () => {
     expect(p.matched).toHaveLength(1);
     expect(p.duplicates.map((d) => d.hub.member_number)).toEqual([2]);
   });
-  it("reports region and join-date differences", () => {
+  it("takes region from the closest city, ignoring MemberHub's state-first region", () => {
     const p = planMemberHubSync(
-      [row("a", { memberNumber: 1, closestMajorCity: "Boston" }), row("b", { memberNumber: 2, region: "WEST" })],
-      [hub(1, { region: "CENTRAL" }), hub(2, { region: "WEST", joined_at: "2026-03-01T00:00:00.000Z" })],
+      [row("a", { memberNumber: 1, closestMajorCity: "Boston" }), row("b", { memberNumber: 2, closestMajorCity: "Boston", region: "NE" })],
+      [hub(1, { region: "CENTRAL" }), hub(2, { closest_major_city: "Dallas", joined_at: "2026-03-01T00:00:00.000Z" })],
       new Map()
     );
-    expect(p.regionChanges.map((r) => [r.hub.member_number, r.from, r.to])).toEqual([[1, "NE", "CENTRAL"]]);
+    expect(p.regionChanges.map((r) => [r.hub.member_number, r.from, r.to])).toEqual([[2, "NE", "CENTRAL"]]);
     expect(p.joinedChanges.map((j) => j.hub.member_number)).toEqual([2]);
   });
 });

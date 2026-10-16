@@ -4,7 +4,7 @@
 
 ## What MEQ is
 
-**MEQ = Member Engagement and Quality**, an internal app for Confide Group / The CISO Society. It pulls member data from EventFlow, Slackle (Slack/Circle) and HubSpot, and turns it into engagement and quality scores that drive community-manager outreach.
+**MEQ = Member Engagement and Quality**, an internal app for Confide Group / The CISO Society. It reads its member roster from MemberHub (the system of record, one way, since 2026-10-15; see `docs/MEMBERHUB-SWITCH.md`) and activity from EventFlow, Slackle (Slack/Circle) and HubSpot, and turns it into engagement and quality scores that drive community-manager outreach.
 
 - Live: https://meq.confide.group (Google sign-in, `@confide.group` only)
 - Repo: https://github.com/Jarrod-Confide/MEQ. On Jarrod's MacBook: `/Users/jl/Claude/meq/app` (the `app/` folder is the git root).

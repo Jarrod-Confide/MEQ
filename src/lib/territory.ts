@@ -83,8 +83,9 @@ export function regionFromState(state: string | null | undefined): Territory {
 }
 
 /**
- * A member's region: MemberHub's (state first, then city) when the roster
- * came from MemberHub, else MEQ's own rule from the closest major city.
+ * A member's region: the stored one (set by the member sync from the
+ * closest major city), else MEQ's city rule. Region always follows the
+ * closest major city (Jarrod, 2026-10-15), not the member's recorded state.
  */
 export function memberRegion(region: string | null | undefined, city: string | null | undefined): Territory {
   return region && (TERRITORIES as readonly string[]).includes(region) ? (region as Territory) : territoryFromCity(city);

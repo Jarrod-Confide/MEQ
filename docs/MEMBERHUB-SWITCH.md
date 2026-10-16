@@ -1,6 +1,6 @@
 # Switching MEQ to read members from MemberHub
 
-**Status (2026-10-15):** code shipped with `MEMBER_SOURCE` unset (= EventFlow). Dry run: `GET /api/cron/memberhub-compare` (Bearer CRON_SECRET). Flip `MEMBER_SOURCE=memberhub` in Vercel Production, then push a fresh commit. Deferred: `m:<member_number>` keys (engagement still identifies people by their EventFlow contact, which every MemberHub member has); add them if the dry run shows members without one.
+**Status (2026-10-15): switched.** MEQ reads members from MemberHub by default (`MEMBER_SOURCE=eventflow` in Vercel falls back). Dry run first: 2,277 of 2,277 matched, 0 created, 0 leavers, 0 duplicates. Jarrod's decisions: region comes from the closest major city (MEQ ignores MemberHub's state-first `region`); the 8 non-staff members with no MemberHub join date get HubSpot's date set in MemberHub (asked of the MemberHub session); MEQ keeps its date when MemberHub's is null. Deferred: `m:<member_number>` keys (every member has an EventFlow contact, so `c:` keys keep working). Dry run any time: `GET /api/cron/memberhub-compare` (Bearer CRON_SECRET).
 
 The hand-off from MemberHub follows.
 

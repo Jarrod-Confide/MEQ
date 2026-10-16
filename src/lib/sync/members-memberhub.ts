@@ -4,6 +4,7 @@ import { meqDb, meqSql, schema } from "../db/meq";
 import { fetchMemberHubRoster, type HubMember } from "../memberhub";
 import { hubEmails, planMemberHubSync, type MeqMemberRow } from "../memberhub-match";
 import { safeIso } from "../safe-date";
+import { territoryFromCity } from "../territory";
 import type { SyncStats } from "./members";
 
 /**
@@ -112,7 +113,9 @@ export async function syncMembersFromMemberHub(opts: { dryRun: boolean }): Promi
         company: h.company,
         job_title: h.job_title,
         closest_major_city: h.closest_major_city,
-        region: h.region,
+        // Region comes from the closest major city (Jarrod, 2026-10-15), not
+        // MemberHub's state-first region field.
+        region: territoryFromCity(h.closest_major_city),
         joined_at: h.joined_at,
         industry: h.industry,
         company_size: h.company_size,

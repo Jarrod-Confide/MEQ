@@ -33,11 +33,12 @@ function parseEmails(
 }
 
 /**
- * Where the roster comes from: MEMBER_SOURCE=memberhub reads MemberHub (the
- * system of record, one way); anything else keeps the EventFlow copy.
+ * Where the roster comes from: MemberHub (the system of record, read one
+ * way) since 2026-10-15. MEMBER_SOURCE=eventflow falls back to the old
+ * EventFlow copy.
  */
 export async function syncMembers(): Promise<SyncStats> {
-  if (process.env.MEMBER_SOURCE === "memberhub") {
+  if (process.env.MEMBER_SOURCE !== "eventflow") {
     const r = await syncMembersFromMemberHub({ dryRun: false });
     return r.stats!;
   }

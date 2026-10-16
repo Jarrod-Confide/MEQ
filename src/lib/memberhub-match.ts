@@ -109,8 +109,11 @@ export function planMemberHubSync(
     claimed.add(row.id);
     plan.matched.push({ hub: h, rowId: row.id, by: by! });
 
+    // Region is MEQ's city rule on both sides (Jarrod, 2026-10-15: from the
+    // closest major city), so this only flags members whose city changed.
     const from = currentRegion(row);
-    if (from !== h.region) plan.regionChanges.push({ hub: h, from, to: h.region });
+    const to = territoryFromCity(h.closest_major_city);
+    if (from !== to) plan.regionChanges.push({ hub: h, from, to });
     const a = row.joinedAt ? new Date(row.joinedAt).getTime() : null;
     const b = h.joined_at ? new Date(h.joined_at).getTime() : null;
     if ((a == null) !== (b == null) || (a != null && b != null && Math.abs(a - b) > DAY)) {
